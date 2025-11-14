@@ -143,4 +143,34 @@ router.post('/logout', authenticate, (req, res) => {
   res.json({ message: 'Erfolgreich abgemeldet' });
 });
 
+// Delete account (permanently delete user and all associated data)
+router.delete('/account', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+
+    // Log for audit trail
+    console.log(`🗑️ Account deletion requested for user: ${userId}`);
+
+    // Delete user (CASCADE will automatically delete all related data:
+    // - UserProfile
+    // - ChatSessions (and their Messages)
+    // - Routines (and their RoutineEntries)
+    // - UserThemenPaketProgress
+    // - WeeklyReports
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    console.log(`✅ Account and all data deleted for user: ${userId}`);
+
+    res.json({
+      message: 'Ihr Konto und alle zugehörigen Daten wurden dauerhaft gelöscht.',
+      deletedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ error: 'Fehler beim Löschen des Kontos' });
+  }
+});
+
 export default router;
