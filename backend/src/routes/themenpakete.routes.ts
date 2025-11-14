@@ -1,8 +1,121 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
+
+// ADMIN: Seed themenpakete (temporary endpoint)
+router.post('/seed', async (req: Request, res: Response) => {
+  try {
+    const themenpakete = [
+      {
+        title: 'Konstruktives Feedback geben',
+        description: 'Lernen Sie, wie Sie Feedback so formulieren, dass es motiviert und weiterbringt. Entwickeln Sie Ihre Feedbackkultur.',
+        category: 'Kommunikation',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Konflikte im Team lösen',
+        description: 'Konflikte professionell lösen und als Mediator zwischen Teammitgliedern agieren. Praxisnahe Techniken für den Arbeitsalltag.',
+        category: 'Konfliktmanagement',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Effektiv delegieren',
+        description: 'Lernen Sie, Aufgaben strategisch zu delegieren, Mitarbeiter zu entwickeln und sich auf Ihre wichtigsten Führungsaufgaben zu konzentrieren.',
+        category: 'Delegation',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Mitarbeiter motivieren',
+        description: 'Verstehen Sie, was Ihre Mitarbeiter antreibt und lernen Sie praxiserprobte Methoden, um intrinsische Motivation zu fördern.',
+        category: 'Motivation',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Schwierige Gespräche führen',
+        description: 'Meistern Sie herausfordernde Mitarbeitergespräche - von Kritik über Kündigungen bis zu Leistungsproblemen.',
+        category: 'Kommunikation',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Agile Führung',
+        description: 'Führen Sie in agilen Umgebungen erfolgreich. Scrum, Kanban und moderne Führungsansätze für dynamische Teams.',
+        category: 'Agilität',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Resilienz aufbauen',
+        description: 'Stärken Sie Ihre psychische Widerstandskraft und lernen Sie, mit Stress und Herausforderungen umzugehen.',
+        category: 'Persönlichkeitsentwicklung',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Effektives Zeitmanagement',
+        description: 'Optimieren Sie Ihre Zeit, setzen Sie Prioritäten richtig und erreichen Sie mehr mit weniger Stress.',
+        category: 'Produktivität',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Design Thinking für Führungskräfte',
+        description: 'Innovative Problemlösungen entwickeln mit der Design-Thinking-Methode. Praxisnah und umsetzbar.',
+        category: 'Innovation',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Remote Teams führen',
+        description: 'Erfolgreiche Führung verteilter Teams. Kommunikation, Vertrauen und Produktivität im Home-Office.',
+        category: 'Remote Leadership',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Change Management',
+        description: 'Veränderungsprozesse erfolgreich gestalten und Ihr Team durch Transformationen führen.',
+        category: 'Veränderung',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+      {
+        title: 'Strategisches Denken entwickeln',
+        description: 'Erweitern Sie Ihren strategischen Horizont und treffen Sie bessere langfristige Entscheidungen.',
+        category: 'Strategie',
+        duration: 14,
+        unitsPerDay: 2,
+      },
+    ];
+
+    const created = [];
+    for (const tp of themenpakete) {
+      const existing = await prisma.themenPaket.findFirst({
+        where: { title: tp.title },
+      });
+
+      if (!existing) {
+        const result = await prisma.themenPaket.create({ data: tp });
+        created.push(result.title);
+      }
+    }
+
+    res.json({
+      message: 'Themenpakete seeded',
+      created: created.length,
+      titles: created,
+    });
+  } catch (error) {
+    console.error('Seed error:', error);
+    res.status(500).json({ error: 'Fehler beim Seeden' });
+  }
+});
 
 // Get all themenpakete with user progress
 router.get('/', authenticate, async (req: AuthRequest, res) => {
