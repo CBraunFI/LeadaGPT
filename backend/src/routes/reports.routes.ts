@@ -143,9 +143,9 @@ router.post('/weekly/generate', authenticate, async (req: AuthRequest, res) => {
         userId: req.user!.userId,
         weekStart: weekAgo,
         weekEnd: now,
-        topics,
-        progress,
-        recommendations,
+        topics: JSON.stringify(topics),
+        progress: JSON.stringify(progress),
+        recommendations: JSON.stringify(recommendations),
       },
     });
 

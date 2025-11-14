@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
@@ -78,7 +78,7 @@ async function deliverPendingThemenPaketUnits(sessionId: string, userId: string)
       where: { userId },
     });
 
-    const userContext: UserContext = profile
+    const userContext: UserContext | undefined = profile
       ? {
           profile: {
             age: profile.age || undefined,
@@ -233,7 +233,7 @@ router.post(
   '/sessions/:id/messages',
   authenticate,
   [body('content').isString().trim().isLength({ min: 1, max: 2000 })],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -308,7 +308,7 @@ router.post(
               age: profile.age || undefined,
               role: profile.role || undefined,
               teamSize: profile.teamSize || undefined,
-              goals: profile.goals,
+              goals: profile.goals ? JSON.parse(profile.goals) : undefined,
             }
           : undefined,
         activeThemenpakete: activeThemenpakete.map((tp) => ({

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
@@ -6,7 +6,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 const router = Router();
 
 // Get all routines for user
-router.get('/', authenticate, async (req: AuthRequest, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const routines = await prisma.routine.findMany({
       where: { userId: req.user!.userId },
@@ -35,7 +35,7 @@ router.post(
     body('frequency').isIn(['daily', 'weekly', 'monthly', 'custom']),
     body('target').optional().isInt({ min: 1 }),
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -76,7 +76,7 @@ router.put(
     body('target').optional().isInt({ min: 1 }),
     body('status').optional().isIn(['active', 'paused', 'completed']),
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -116,7 +116,7 @@ router.put(
 );
 
 // Delete routine
-router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     await prisma.routine.deleteMany({
       where: {
@@ -141,7 +141,7 @@ router.post(
     body('completed').isBoolean(),
     body('note').optional().isString(),
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -180,7 +180,7 @@ router.post(
 );
 
 // Get routine stats
-router.get('/:id/stats', authenticate, async (req: AuthRequest, res) => {
+router.get('/:id/stats', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const routine = await prisma.routine.findFirst({
       where: {

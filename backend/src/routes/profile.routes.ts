@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
@@ -6,7 +6,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 const router = Router();
 
 // Get user profile
-router.get('/', authenticate, async (req: AuthRequest, res) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const profile = await prisma.userProfile.findUnique({
       where: { userId: req.user!.userId },
@@ -36,7 +36,7 @@ router.put(
     body('leadershipYears').optional().isInt({ min: 0 }),
     body('goals').optional().isArray(),
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -68,7 +68,7 @@ router.put(
 );
 
 // Complete onboarding
-router.post('/onboarding', authenticate, async (req: AuthRequest, res) => {
+router.post('/onboarding', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const profile = await prisma.userProfile.update({
       where: { userId: req.user!.userId },

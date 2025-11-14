@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { hashPassword, comparePassword } from '../utils/password';
@@ -14,7 +14,7 @@ router.post(
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 8 }),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -72,7 +72,7 @@ router.post(
 router.post(
   '/login',
   [body('email').isEmail().normalizeEmail(), body('password').notEmpty()],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
