@@ -42,6 +42,23 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Leada Chat API is running',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      profile: '/api/profile',
+      chat: '/api/chat',
+      themenpakete: '/api/themenpakete',
+      routines: '/api/routines',
+      reports: '/api/reports',
+    },
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
