@@ -21,10 +21,25 @@ const PORT = process.env.PORT || 3000;
 // Security middleware
 app.use(helmet());
 
-// CORS
+// CORS - Allow both development and production origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://leadagpt-frontend.onrender.com',
+  process.env.ALLOWED_ORIGIN,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.ALLOWED_ORIGIN || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
@@ -90,7 +105,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 app.listen(PORT, () => {
   console.log(`🚀 Leada Chat Backend running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 CORS allowed origin: ${process.env.ALLOWED_ORIGIN || 'http://localhost:5173'}`);
+  console.log(`🌐 CORS allowed origins: ${allowedOrigins.join(', ')}`);
 });
 
 export default app;
