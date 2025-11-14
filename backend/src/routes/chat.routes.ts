@@ -4,6 +4,12 @@ import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { getChatCompletion, generateChatTitle, generateThemenPaketUnit, UserContext } from '../services/openai.service';
 import { getDocumentContext } from './documents.routes';
+import {
+  extractProfileInformation,
+  mergeProfileInfo,
+  isProfileComplete,
+} from '../services/profileExtraction.service';
+import { analyzeLanguageStyle, extractUserMessages } from '../services/languageStyle.service';
 
 const router = Router();
 
@@ -89,6 +95,7 @@ async function deliverPendingThemenPaketUnits(sessionId: string, userId: string)
             role: profile.role || undefined,
             teamSize: profile.teamSize || undefined,
             goals: profile.goals ? JSON.parse(profile.goals) : undefined,
+            onboardingComplete: profile.onboardingComplete,
           },
           documentsContext: documentsContext || undefined,
         }
@@ -311,6 +318,12 @@ router.post(
       // Get document context
       const documentsContext = await getDocumentContext(req.user!.userId);
 
+      // Analyze language style from previous messages
+      const userMessagesContent = extractUserMessages(
+        session.messages.map(msg => ({ role: msg.role, content: msg.content }))
+      );
+      const languageStyle = analyzeLanguageStyle(userMessagesContent);
+
       // Build user context
       const userContext: UserContext = {
         profile: profile
@@ -319,6 +332,7 @@ router.post(
               role: profile.role || undefined,
               teamSize: profile.teamSize || undefined,
               goals: profile.goals ? JSON.parse(profile.goals) : undefined,
+              onboardingComplete: profile.onboardingComplete,
             }
           : undefined,
         activeThemenpakete: activeThemenpakete.map((tp) => ({
@@ -332,6 +346,7 @@ router.post(
           target: r.target || 0,
         })),
         documentsContext: documentsContext || undefined,
+        languageStyle: languageStyle?.description || undefined,
       };
 
       // Prepare messages for OpenAI
@@ -366,6 +381,45 @@ router.post(
           metadata: Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null,
         },
       });
+
+      // Extract profile information from conversation and update profile
+      try {
+        const extracted = await extractProfileInformation(
+          content,
+          aiResponse,
+          profile
+        );
+
+        if (extracted.hasNewInfo) {
+          console.log('📝 Neue Profilinformationen gefunden:', extracted);
+
+          // Merge with existing profile
+          const updatedProfileData = mergeProfileInfo(profile, extracted);
+
+          // Check if profile is now complete
+          const profileComplete = isProfileComplete(updatedProfileData);
+
+          // Update profile in database
+          await prisma.userProfile.update({
+            where: { userId: req.user!.userId },
+            data: {
+              age: updatedProfileData.age,
+              gender: updatedProfileData.gender,
+              role: updatedProfileData.role,
+              industry: updatedProfileData.industry,
+              teamSize: updatedProfileData.teamSize,
+              leadershipYears: updatedProfileData.leadershipYears,
+              goals: updatedProfileData.goals ? JSON.stringify(updatedProfileData.goals) : profile?.goals,
+              onboardingComplete: profileComplete || profile?.onboardingComplete || false,
+            },
+          });
+
+          console.log('✅ Profil automatisch aktualisiert');
+        }
+      } catch (error) {
+        console.error('Error extracting/updating profile:', error);
+        // Don't fail the request if profile extraction fails
+      }
 
       // Generate title after first exchange (2 messages: user + assistant)
       if (session.messages.length === 0 && !session.title) {

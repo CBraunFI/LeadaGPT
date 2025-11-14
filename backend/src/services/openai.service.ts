@@ -16,6 +16,7 @@ export interface UserContext {
     role?: string;
     teamSize?: number;
     goals?: string[];
+    onboardingComplete?: boolean;
   };
   activeThemenpakete?: Array<{
     title: string;
@@ -28,12 +29,18 @@ export interface UserContext {
     target: number;
   }>;
   documentsContext?: string;
+  languageStyle?: string;
 }
 
 export const generateUserContextPrompt = (context: UserContext): string => {
   const parts: string[] = ['# Nutzerprofil'];
 
   if (context.profile) {
+    // Add onboarding status first
+    if (context.profile.onboardingComplete !== undefined) {
+      parts.push(`- Onboarding abgeschlossen: ${context.profile.onboardingComplete ? 'Ja' : 'Nein'}`);
+    }
+
     if (context.profile.age) parts.push(`- Alter: ${context.profile.age}`);
     if (context.profile.role) parts.push(`- Rolle: ${context.profile.role}`);
     if (context.profile.teamSize)
@@ -55,6 +62,12 @@ export const generateUserContextPrompt = (context: UserContext): string => {
     context.activeRoutines.forEach((r) => {
       parts.push(`- ${r.title} (${r.completedThisWeek}/${r.target} diese Woche)`);
     });
+  }
+
+  // Add language style hint if available
+  if (context.languageStyle) {
+    parts.push(`\n# Sprach-Stil des Nutzers`);
+    parts.push(context.languageStyle);
   }
 
   // Add document context if available
@@ -139,9 +152,58 @@ export const generateThemenPaketUnit = async (
 
   const contextPrompt = userContext ? generateUserContextPrompt(userContext) : '';
 
+  // Determine learning phase based on day
+  let learningPhase = '';
+  let phaseGuidelines = '';
+
+  if (day >= 1 && day <= 3) {
+    learningPhase = 'Grundlagen & Bewusstsein';
+    phaseGuidelines = `
+- Führe in das Thema ein und erkläre, warum es wichtig ist
+- Fördere Selbstreflexion: Wo steht der Nutzer heute?
+- Vermittle Grundkonzepte und wichtige Terminologie
+- Schaffe ein Bewusstsein für das Thema`;
+  } else if (day >= 4 && day <= 7) {
+    learningPhase = 'Vertiefung & Methoden';
+    phaseGuidelines = `
+- Vermittle konkrete Techniken und Werkzeuge
+- Zeige Best Practices aus der Praxis
+- Erkläre häufige Fehler und wie man sie vermeidet
+- Biete erste Umsetzungsübungen an
+- Baue auf den Grundlagen der Tage 1-3 auf`;
+  } else if (day >= 8 && day <= 10) {
+    learningPhase = 'Anwendung & Integration';
+    phaseGuidelines = `
+- Präsentiere komplexere Szenarien
+- Verknüpfe mit anderen Führungsthemen
+- Passe an die individuelle Situation des Nutzers an
+- Zeige, wie mit Herausforderungen umzugehen ist
+- Wiederhole zentrale Konzepte aus Tagen 1-7`;
+  } else if (day >= 11 && day <= 14) {
+    learningPhase = 'Meisterschaft & Nachhaltigkeit';
+    phaseGuidelines = `
+- Vermittle fortgeschrittene Techniken
+- Zeige langfristige Integration in den Führungsalltag
+- Definiere messbare Erfolgskriterien
+- Fokussiere auf kontinuierliche Verbesserung
+- Biete eine Abschlussreflexion und nächste Schritte
+- Wiederhole die wichtigsten Erkenntnisse aus dem gesamten Paket`;
+  }
+
   const systemPrompt = `Du bist Leada, ein KI-gestützter Leadership-Coach.
 
 Du generierst gerade Einheit ${unit} von Tag ${day}/${totalDays} für das Themenpaket "${themenPaketTitle}".
+
+🎯 LERNPHASE: ${learningPhase} (Tag ${day} von ${totalDays})
+
+${phaseGuidelines}
+
+DIDAKTISCHE PRINZIPIEN:
+- Baue auf vorherigen Tagen auf (z.B. "Wie Sie an Tag X gelernt haben...")
+- Wiederhole zentrale Konzepte zur Festigung
+- Steigere die Komplexität graduell
+- Nutze konkrete Beispiele aus der Führungspraxis
+- Jede Einheit sollte einen klaren "Aha-Moment" bieten
 
 WICHTIGE RICHTLINIEN für Themenpaket-Einheiten:
 - Jede Einheit sollte 300-400 Wörter umfassen
@@ -150,12 +212,11 @@ WICHTIGE RICHTLINIEN für Themenpaket-Einheiten:
 - Nutze Beispiele aus dem Führungsalltag
 - Schließe mit einer Reflexionsfrage oder einer konkreten Umsetzungsaufgabe
 - Der Ton sollte persönlich, ermutigend und professionell sein
-- Baue auf vorherigen Tagen auf (Tag ${day} von ${totalDays})
 - Dies ist Einheit ${unit} von ${unitsPerDay} für heute
 
 STRUKTUR:
 1. Begrüßung & Kontext (z.B. "Willkommen zu Tag ${day}...")
-2. Kerninhalt mit praktischen Tipps
+2. Kerninhalt mit praktischen Tipps (angepasst an Lernphase)
 3. Reflexionsfrage oder Umsetzungsaufgabe
 
 ${contextPrompt ? `\n${contextPrompt}` : ''}
