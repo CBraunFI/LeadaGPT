@@ -7,7 +7,6 @@ import { authAPI } from './services/api';
 // Pages
 import Landing from './pages/Landing';
 import Login from './pages/Login';
-import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Themenpakete from './pages/Themenpakete';

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { chatAPI, routinenAPI } from '../services/api';
-import { ChatSession, Message } from '../types';
-import { useStore } from '../store/useStore';
+import { ChatSession } from '../types';
 
 const Chat = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -12,7 +11,6 @@ const Chat = () => {
   const [isSending, setIsSending] = useState(false);
   const [savingRoutine, setSavingRoutine] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const user = useStore((state) => state.user);
   const { sessionId } = useParams<{ sessionId: string }>();
 
   useEffect(() => {

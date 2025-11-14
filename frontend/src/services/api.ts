@@ -1,10 +1,9 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import type {
   AuthResponse,
   User,
   UserProfile,
   ChatSession,
-  Message,
   ThemenPaket,
   Routine,
   RoutineEntry,
@@ -13,7 +12,7 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-const api = axios.create({
+const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -21,7 +20,7 @@ const api = axios.create({
 });
 
 // Add auth token to requests
-api.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -29,102 +28,95 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Automatically extract data from responses
-api.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Helper to extract data from axios responses
+const extractData = <T>(response: AxiosResponse<T>): T => response.data;
 
 // Auth API
 export const authAPI = {
   register: (email: string, password: string) =>
-    api.post<AuthResponse>('/auth/register', { email, password }),
+    axiosInstance.post<AuthResponse>('/auth/register', { email, password }).then(extractData),
 
   login: (email: string, password: string) =>
-    api.post<AuthResponse>('/auth/login', { email, password }),
+    axiosInstance.post<AuthResponse>('/auth/login', { email, password }).then(extractData),
 
-  logout: () => api.post('/auth/logout'),
+  logout: () => axiosInstance.post('/auth/logout').then(extractData),
 
-  getMe: () => api.get<User>('/auth/me'),
+  getMe: () => axiosInstance.get<User>('/auth/me').then(extractData),
 };
 
 // Profile API
 export const profileAPI = {
-  get: () => api.get<UserProfile>('/profile'),
+  get: () => axiosInstance.get<UserProfile>('/profile').then(extractData),
 
-  update: (data: Partial<UserProfile>) => api.put<UserProfile>('/profile', data),
+  update: (data: Partial<UserProfile>) => axiosInstance.put<UserProfile>('/profile', data).then(extractData),
 
-  completeOnboarding: () => api.post<UserProfile>('/profile/onboarding'),
+  completeOnboarding: () => axiosInstance.post<UserProfile>('/profile/onboarding').then(extractData),
 };
 
 // Chat API
 export const chatAPI = {
-  getSessions: () => api.get<ChatSession[]>('/chat/sessions'),
+  getSessions: () => axiosInstance.get<ChatSession[]>('/chat/sessions').then(extractData),
 
   createSession: (title?: string) =>
-    api.post<ChatSession>('/chat/sessions', { title }),
+    axiosInstance.post<ChatSession>('/chat/sessions', { title }).then(extractData),
 
-  getSession: (id: string) => api.get<ChatSession>(`/chat/sessions/${id}`),
+  getSession: (id: string) => axiosInstance.get<ChatSession>(`/chat/sessions/${id}`).then(extractData),
 
   sendMessage: (sessionId: string, content: string) =>
-    api.post<ChatSession>(
+    axiosInstance.post<ChatSession>(
       `/chat/sessions/${sessionId}/messages`,
       { content }
-    ),
+    ).then(extractData),
 
-  deleteSession: (id: string) => api.delete(`/chat/sessions/${id}`),
+  deleteSession: (id: string) => axiosInstance.delete(`/chat/sessions/${id}`).then(extractData),
 };
 
 // Themenpakete API
 export const themenpaketeAPI = {
-  getAll: () => api.get<ThemenPaket[]>('/themenpakete'),
+  getAll: () => axiosInstance.get<ThemenPaket[]>('/themenpakete').then(extractData),
 
-  getById: (id: string) => api.get<ThemenPaket>(`/themenpakete/${id}`),
+  getById: (id: string) => axiosInstance.get<ThemenPaket>(`/themenpakete/${id}`).then(extractData),
 
-  start: (id: string) => api.post<{ progress: any; chatSessionId: string }>(`/themenpakete/${id}/start`),
+  start: (id: string) => axiosInstance.post<{ progress: any; chatSessionId: string }>(`/themenpakete/${id}/start`).then(extractData),
 
-  pause: (id: string) => api.post(`/themenpakete/${id}/pause`),
+  pause: (id: string) => axiosInstance.post(`/themenpakete/${id}/pause`).then(extractData),
 
-  continue: (id: string) => api.post(`/themenpakete/${id}/continue`),
+  continue: (id: string) => axiosInstance.post(`/themenpakete/${id}/continue`).then(extractData),
 
-  getProgress: () => api.get('/themenpakete/progress'),
+  getProgress: () => axiosInstance.get('/themenpakete/progress').then(extractData),
 };
 
 // Routinen API
 export const routinenAPI = {
-  getAll: () => api.get<Routine[]>('/routines'),
+  getAll: () => axiosInstance.get<Routine[]>('/routines').then(extractData),
 
   create: (data: {
     title: string;
     description?: string;
     frequency: 'daily' | 'weekly' | 'custom';
     target?: number;
-  }) => api.post<Routine>('/routines', data),
+  }) => axiosInstance.post<Routine>('/routines', data).then(extractData),
 
   update: (id: string, data: Partial<Routine>) =>
-    api.put<Routine>(`/routines/${id}`, data),
+    axiosInstance.put<Routine>(`/routines/${id}`, data).then(extractData),
 
-  delete: (id: string) => api.delete(`/routines/${id}`),
+  delete: (id: string) => axiosInstance.delete(`/routines/${id}`).then(extractData),
 
   addEntry: (
     id: string,
     data: { date: string; completed: boolean; note?: string }
-  ) => api.post<RoutineEntry>(`/routines/${id}/entries`, data),
+  ) => axiosInstance.post<RoutineEntry>(`/routines/${id}/entries`, data).then(extractData),
 
-  getStats: (id: string) => api.get(`/routines/${id}/stats`),
+  getStats: (id: string) => axiosInstance.get(`/routines/${id}/stats`).then(extractData),
 };
 
 // Reports API
 export const reportsAPI = {
-  getWeekly: () => api.get<WeeklyReport[]>('/reports/weekly'),
+  getWeekly: () => axiosInstance.get<WeeklyReport[]>('/reports/weekly').then(extractData),
 
-  getLatest: () => api.get<WeeklyReport>('/reports/weekly/latest'),
+  getLatest: () => axiosInstance.get<WeeklyReport>('/reports/weekly/latest').then(extractData),
 
-  generate: () => api.post<WeeklyReport>('/reports/weekly/generate'),
+  generate: () => axiosInstance.post<WeeklyReport>('/reports/weekly/generate').then(extractData),
 };
 
-export default api;
+export default axiosInstance;

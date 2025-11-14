@@ -22,12 +22,12 @@ const Dashboard = () => {
 
       // Load active Themenpakete
       const themenpaketeData = await themenpaketeAPI.getAll();
-      const activeThemenpakete = themenpaketeData.filter(tp => tp.progress?.status === 'active');
+      const activeThemenpakete = themenpaketeData.filter((tp: any) => tp.progress?.status === 'active');
       setThemenpakete(activeThemenpakete);
 
       // Load active Routines
       const routinesData = await routinenAPI.getAll();
-      const activeRoutines = routinesData.filter(r => r.status === 'active').slice(0, 5);
+      const activeRoutines = routinesData.filter((r: any) => r.status === 'active').slice(0, 5);
       setRoutines(activeRoutines);
 
       // Load latest report
