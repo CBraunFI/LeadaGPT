@@ -189,3 +189,31 @@ model Document {
   uploadedAt    DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("admin") // "admin" | "superadmin"
+  isActive     Boolean  @default(true)
+
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs    AdminAuditLog[]
+}
+
+model AdminAuditLog {
+  id       String   @id @default(cuid())
+  adminId  String
+  admin    Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  action   String   // "user_view" | "user_edit" | "user_delete" | "password_reset" | "login" | etc.
+  targetId String?  // ID of the affected resource (e.g., userId)
+  details  String?  @db.Text // JSON string with additional context
+  ipAddress String?
+
+  createdAt DateTime @default(now())
+}

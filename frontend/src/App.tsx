@@ -17,8 +17,14 @@ import Reports from './pages/Reports';
 import MeinBereich from './pages/MeinBereich';
 import MeinUnternehmen from './pages/MeinUnternehmen';
 
+// Admin Pages
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UserManagement from './pages/admin/UserManagement';
+
 // Layout
 import Layout from './components/Layout';
+import AdminLayout from './components/AdminLayout';
 
 function App() {
   const { isAuthenticated, setUser, setToken } = useStore();
@@ -51,6 +57,14 @@ function App() {
           path="/login"
           element={isAuthenticated ? <Navigate to="/chat" /> : <Login />}
         />
+
+        {/* Admin routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        </Route>
 
         {/* Protected routes */}
         <Route

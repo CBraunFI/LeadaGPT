@@ -15,6 +15,7 @@ import themenpaketeRoutes from './routes/themenpakete.routes';
 import routinenRoutes from './routes/routinen.routes';
 import reportsRoutes from './routes/reports.routes';
 import documentsRoutes from './routes/documents.routes';
+import adminRoutes from './routes/admin.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,6 +73,7 @@ app.get('/', (req, res) => {
       routines: '/api/routines',
       reports: '/api/reports',
       documents: '/api/documents',
+      admin: '/api/admin',
     },
   });
 });
@@ -89,6 +91,7 @@ app.use('/api/themenpakete', themenpaketeRoutes);
 app.use('/api/routines', routinenRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/documents', documentsRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {

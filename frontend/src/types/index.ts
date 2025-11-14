@@ -143,3 +143,59 @@ export interface Document {
   uploadedAt: string;
   updatedAt: string;
 }
+
+// Admin types
+export interface Admin {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'superadmin';
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+export interface AdminAuthResponse {
+  token: string;
+  admin: Admin;
+}
+
+export interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  topTopics: Array<{ text: string; value: number }>;
+  companies: Array<{
+    id: string;
+    name: string;
+    domain?: string;
+    userCount: number;
+    documentCount: number;
+    createdAt: string;
+  }>;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  authProvider: string;
+  createdAt: string;
+  lastUsed?: string;
+  profile?: UserProfile;
+  company?: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface AdminUserListResponse {
+  users: AdminUser[];
+  total: number;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  domain?: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
