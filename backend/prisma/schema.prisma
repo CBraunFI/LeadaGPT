@@ -1,0 +1,157 @@
+// Leada Chat Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String?  // null für OAuth-User
+  authProvider   String   // "local" | "google" | "microsoft"
+  authProviderId String?  // ID vom OAuth-Provider
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  profile       UserProfile?
+  sessions      ChatSession[]
+  routines      Routine[]
+  weeklyReports WeeklyReport[]
+  themenPaketProgress UserThemenPaketProgress[]
+}
+
+model UserProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  age                Int?
+  gender             String?
+  role               String?
+  industry           String?
+  teamSize           Int?
+  leadershipYears    Int?
+  goals              String? // JSON string array
+
+  onboardingComplete Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ChatSession {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String?   // Optional: "Feedback-Coaching", etc.
+  messages  Message[]
+  themenPaketProgress UserThemenPaketProgress?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  role      String   // "user" | "assistant" | "system"
+  content   String
+  metadata  String?  // JSON string
+  createdAt DateTime @default(now())
+}
+
+model ThemenPaket {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  duration    Int      @default(14) // Tage
+  unitsPerDay Int      @default(2)
+  category    String?  // z.B. "Feedback", "Konfliktklärung"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  units    LearningUnit[]
+  progress UserThemenPaketProgress[]
+}
+
+model LearningUnit {
+  id            String      @id @default(cuid())
+  themenPaketId String
+  themenPaket   ThemenPaket @relation(fields: [themenPaketId], references: [id], onDelete: Cascade)
+
+  day            Int    // 1-14
+  unitNumber     Int    // 1 oder 2
+  title          String
+  content        String // Max 400 Wörter
+  reflectionTask String
+
+  order Int // Gesamtreihenfolge
+}
+
+model UserThemenPaketProgress {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  themenPaketId String
+  themenPaket   ThemenPaket @relation(fields: [themenPaketId], references: [id], onDelete: Cascade)
+  chatSessionId String?     @unique // Der zugehörige Chat für dieses Themenpaket
+  chatSession   ChatSession? @relation(fields: [chatSessionId], references: [id], onDelete: SetNull)
+
+  status         String    // "active" | "paused" | "completed"
+  currentDay     Int       @default(1)
+  currentUnit    Int       @default(1)
+  startedAt      DateTime  @default(now())
+  lastAccessedAt DateTime  @updatedAt
+  completedAt    DateTime?
+
+  @@unique([userId, themenPaketId])
+}
+
+model Routine {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  frequency   String   // "daily" | "weekly" | "custom"
+  target      Int?     // z.B. 3x pro Woche
+
+  status    String         @default("active") // "active" | "paused" | "completed"
+  entries   RoutineEntry[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model RoutineEntry {
+  id        String   @id @default(cuid())
+  routineId String
+  routine   Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  date      DateTime
+  completed Boolean  @default(false)
+  note      String?
+
+  createdAt DateTime @default(now())
+}
+
+model WeeklyReport {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weekStart DateTime
+  weekEnd   DateTime
+
+  topics          String? // JSON string array
+  progress        String? // JSON string
+  recommendations String? // JSON string array
+
+  createdAt DateTime @default(now())
+}
