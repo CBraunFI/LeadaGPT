@@ -1,5 +1,8 @@
-import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
+
+// pdf-parse is a CommonJS module, use require
+// @ts-ignore
+const pdf = require('pdf-parse');
 
 export interface ExtractionResult {
   text: string;
