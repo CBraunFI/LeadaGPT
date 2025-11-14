@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { getChatCompletion, generateChatTitle, generateThemenPaketUnit, UserContext } from '../services/openai.service';
+import { getDocumentContext } from './documents.routes';
 
 const router = Router();
 
@@ -78,6 +79,9 @@ async function deliverPendingThemenPaketUnits(sessionId: string, userId: string)
       where: { userId },
     });
 
+    // Get document context
+    const documentsContext = await getDocumentContext(userId);
+
     const userContext: UserContext | undefined = profile
       ? {
           profile: {
@@ -86,7 +90,10 @@ async function deliverPendingThemenPaketUnits(sessionId: string, userId: string)
             teamSize: profile.teamSize || undefined,
             goals: profile.goals ? JSON.parse(profile.goals) : undefined,
           },
+          documentsContext: documentsContext || undefined,
         }
+      : documentsContext
+      ? { documentsContext }
       : undefined;
 
     // Check which units have already been delivered for the current day
@@ -301,6 +308,9 @@ router.post(
         },
       });
 
+      // Get document context
+      const documentsContext = await getDocumentContext(req.user!.userId);
+
       // Build user context
       const userContext: UserContext = {
         profile: profile
@@ -321,6 +331,7 @@ router.post(
           completedThisWeek: r.entries.length,
           target: r.target || 0,
         })),
+        documentsContext: documentsContext || undefined,
       };
 
       // Prepare messages for OpenAI

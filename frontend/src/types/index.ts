@@ -124,3 +124,22 @@ export interface WeeklyReport {
   recommendations: string[];
   createdAt: string;
 }
+
+// Document types
+export interface Document {
+  id: string;
+  userId: string;
+  companyId?: string;
+  filename: string;
+  fileType: string;
+  fileSize: number;
+  category: 'personal' | 'company';
+  metadata?: {
+    originalMimetype?: string;
+    wordCount?: number;
+    pageCount?: number;
+    uploadedFrom?: string;
+  };
+  uploadedAt: string;
+  updatedAt: string;
+}

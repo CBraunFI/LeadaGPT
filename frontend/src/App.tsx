@@ -14,6 +14,8 @@ import ThemenpaketDetail from './pages/ThemenpaketDetail';
 import Routinen from './pages/Routinen';
 import Profile from './pages/Profile';
 import Reports from './pages/Reports';
+import MeinBereich from './pages/MeinBereich';
+import MeinUnternehmen from './pages/MeinUnternehmen';
 
 // Layout
 import Layout from './components/Layout';
@@ -65,6 +67,8 @@ function App() {
                   <Route path="/routinen" element={<Routinen />} />
                   <Route path="/profil" element={<Profile />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="/mein-bereich" element={<MeinBereich />} />
+                  <Route path="/mein-unternehmen" element={<MeinUnternehmen />} />
                   <Route path="*" element={<Navigate to="/chat" />} />
                 </Routes>
               </Layout>

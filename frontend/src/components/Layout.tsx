@@ -58,6 +58,8 @@ const Layout = ({ children }: LayoutProps) => {
               </button>
               <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg hidden group-hover:block" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
                 <Link to="/profil" className="block px-4 py-2 hover:opacity-80">Profil</Link>
+                <Link to="/mein-bereich" className="block px-4 py-2 hover:opacity-80">Mein Bereich</Link>
+                <Link to="/mein-unternehmen" className="block px-4 py-2 hover:opacity-80">Mein Unternehmen</Link>
                 <Link to="/reports" className="block px-4 py-2 hover:opacity-80">Reports</Link>
                 <button onClick={handleLogout} className="block w-full text-left px-4 py-2 hover:opacity-80">Logout</button>
               </div>

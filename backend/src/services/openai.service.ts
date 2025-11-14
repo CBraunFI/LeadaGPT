@@ -27,6 +27,7 @@ export interface UserContext {
     completedThisWeek: number;
     target: number;
   }>;
+  documentsContext?: string;
 }
 
 export const generateUserContextPrompt = (context: UserContext): string => {
@@ -54,6 +55,11 @@ export const generateUserContextPrompt = (context: UserContext): string => {
     context.activeRoutines.forEach((r) => {
       parts.push(`- ${r.title} (${r.completedThisWeek}/${r.target} diese Woche)`);
     });
+  }
+
+  // Add document context if available
+  if (context.documentsContext) {
+    parts.push(context.documentsContext);
   }
 
   return parts.join('\n');

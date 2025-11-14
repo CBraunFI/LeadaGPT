@@ -14,6 +14,7 @@ import chatRoutes from './routes/chat.routes';
 import themenpaketeRoutes from './routes/themenpakete.routes';
 import routinenRoutes from './routes/routinen.routes';
 import reportsRoutes from './routes/reports.routes';
+import documentsRoutes from './routes/documents.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -70,6 +71,7 @@ app.get('/', (req, res) => {
       themenpakete: '/api/themenpakete',
       routines: '/api/routines',
       reports: '/api/reports',
+      documents: '/api/documents',
     },
   });
 });
@@ -86,6 +88,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/themenpakete', themenpaketeRoutes);
 app.use('/api/routines', routinenRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/documents', documentsRoutes);
 
 // 404 handler
 app.use((req, res) => {

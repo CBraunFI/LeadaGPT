@@ -8,6 +8,7 @@ import type {
   Routine,
   RoutineEntry,
   WeeklyReport,
+  Document,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -117,6 +118,42 @@ export const reportsAPI = {
   getLatest: () => axiosInstance.get<WeeklyReport>('/reports/weekly/latest').then(extractData),
 
   generate: () => axiosInstance.post<WeeklyReport>('/reports/weekly/generate').then(extractData),
+};
+
+// Documents API
+export const documentsAPI = {
+  getAll: (category?: 'personal' | 'company') => {
+    const url = category ? `/documents?category=${category}` : '/documents';
+    return axiosInstance.get<Document[]>(url).then(extractData);
+  },
+
+  getById: (id: string) => axiosInstance.get<Document>(`/documents/${id}`).then(extractData),
+
+  upload: (file: File, category: 'personal' | 'company') => {
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('category', category);
+
+    return axiosInstance.post<{
+      message: string;
+      document: {
+        id: string;
+        filename: string;
+        fileType: string;
+        fileSize: number;
+        category: string;
+        uploadedAt: string;
+        wordCount?: number;
+        pageCount?: number;
+      };
+    }>('/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }).then(extractData);
+  },
+
+  delete: (id: string) => axiosInstance.delete(`/documents/${id}`).then(extractData),
 };
 
 export default axiosInstance;
