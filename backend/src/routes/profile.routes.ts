@@ -3,6 +3,8 @@ import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { generateProfileSummary } from '../services/summary.service';
+import { getChatCompletion } from '../services/openai.service';
+import { getOnboardingSystemPrompt } from '../config/onboarding-prompt';
 
 const router = Router();
 
@@ -133,6 +135,90 @@ router.get('/reflection-chat', authenticate, async (req: AuthRequest, res: Respo
   } catch (error) {
     console.error('Get profile reflection chat error:', error);
     res.status(500).json({ error: 'Fehler beim Abrufen des Reflexions-Chats' });
+  }
+});
+
+// Get or create Onboarding Chat
+router.get('/onboarding-chat', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    // Get user profile for language
+    const userProfile = await prisma.userProfile.findUnique({
+      where: { userId: req.user!.userId },
+    });
+
+    const userLanguage = userProfile?.preferredLanguage || 'Deutsch';
+
+    // Check if chat already exists
+    let chat = await prisma.chatSession.findFirst({
+      where: {
+        userId: req.user!.userId,
+        chatType: 'onboarding',
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    // Create if doesn't exist
+    if (!chat) {
+      chat = await prisma.chatSession.create({
+        data: {
+          userId: req.user!.userId,
+          title: 'Willkommen bei Leada',
+          chatType: 'onboarding',
+          isPinned: true,
+        },
+        include: {
+          messages: true,
+        },
+      });
+
+      // Add welcome message from AI
+      const systemPrompt = getOnboardingSystemPrompt(userLanguage);
+
+      const welcomeMessage = await getChatCompletion([
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: 'Begrüße mich als neuen Nutzer und starte das Onboarding.',
+        },
+      ]);
+
+      // Create system message
+      await prisma.message.create({
+        data: {
+          sessionId: chat.id,
+          role: 'system',
+          content: systemPrompt,
+        },
+      });
+
+      // Create initial AI message
+      const aiMessage = await prisma.message.create({
+        data: {
+          sessionId: chat.id,
+          role: 'assistant',
+          content: welcomeMessage,
+        },
+      });
+
+      // Reload chat with messages
+      chat = await prisma.chatSession.findUnique({
+        where: { id: chat.id },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      })!;
+    }
+
+    res.json(chat);
+  } catch (error) {
+    console.error('Get onboarding chat error:', error);
+    res.status(500).json({ error: 'Fehler beim Abrufen des Onboarding-Chats' });
   }
 });
 

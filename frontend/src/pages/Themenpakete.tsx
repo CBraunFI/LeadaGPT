@@ -94,6 +94,17 @@ const Themenpakete = () => {
     );
   }
 
+  // Sort themenpakete: recommended first, then by status
+  const sortedThemenpakete = [...themenpakete].sort((a, b) => {
+    if (a.isRecommended && !b.isRecommended) return -1;
+    if (!a.isRecommended && b.isRecommended) return 1;
+    if (a.status === 'active' && b.status !== 'active') return -1;
+    if (a.status !== 'active' && b.status === 'active') return 1;
+    return 0;
+  });
+
+  const recommendedCount = themenpakete.filter(tp => tp.isRecommended).length;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -101,10 +112,20 @@ const Themenpakete = () => {
         <p style={{ color: 'var(--fg-secondary)' }}>
           Wählen Sie ein Themenpaket aus, um Ihre Führungskompetenzen zu entwickeln.
         </p>
+        {recommendedCount > 0 && (
+          <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--accent)' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✨</span>
+              <span style={{ color: 'var(--fg-primary)' }}>
+                <strong>{recommendedCount} Themenpakete</strong> wurden speziell für Sie empfohlen, basierend auf Ihrem Profil und Ihren Gesprächen.
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {themenpakete.map((tp) => (
+        {sortedThemenpakete.map((tp) => (
           <div
             key={tp.id}
             className="rounded-lg p-6 border"
@@ -118,7 +139,18 @@ const Themenpakete = () => {
                 <h3 className="text-xl font-bold flex-1" style={{ color: 'var(--fg-primary)' }}>
                   {tp.title}
                 </h3>
-                {getStatusBadge(tp.status)}
+                <div className="flex flex-col gap-2">
+                  {tp.isRecommended && (
+                    <span
+                      className="px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1"
+                      style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+                    >
+                      <span>✨</span>
+                      <span>Empfohlen</span>
+                    </span>
+                  )}
+                  {getStatusBadge(tp.status)}
+                </div>
               </div>
 
               {tp.category && (

@@ -44,7 +44,7 @@ export interface ChatSession {
   id: string;
   userId: string;
   title?: string;
-  chatType: 'general' | 'themenpaket' | 'routine' | 'profil' | 'ki-briefing';
+  chatType: 'general' | 'themenpaket' | 'routine' | 'profil' | 'ki-briefing' | 'onboarding';
   isPinned: boolean;
   linkedEntityId?: string;
   messages: Message[];
@@ -71,6 +71,7 @@ export interface ThemenPaket {
   category?: string;
   status: 'not_started' | 'active' | 'paused' | 'completed';
   progress?: UserThemenPaketProgress;
+  isRecommended?: boolean; // AI-generated personalized recommendation
 }
 
 export interface LearningUnit {

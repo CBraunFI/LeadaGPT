@@ -58,6 +58,8 @@ export const profileAPI = {
   getSummary: () => axiosInstance.get<{ summary: string }>('/profile/summary').then(extractData),
 
   getReflectionChat: () => axiosInstance.get<ChatSession>('/profile/reflection-chat').then(extractData),
+
+  getOnboardingChat: () => axiosInstance.get<ChatSession>('/profile/onboarding-chat').then(extractData),
 };
 
 // Chat API

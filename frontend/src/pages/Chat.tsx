@@ -224,6 +224,7 @@ const Chat = () => {
           ) : (
             sessions.map((session) => {
               const chatIcon = {
+                'onboarding': '🎯',
                 'profil': '👤',
                 'ki-briefing': '📊',
                 'themenpaket': '📚',

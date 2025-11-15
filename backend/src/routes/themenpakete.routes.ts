@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { generateRecommendations } from '../services/recommendation.service';
 
 const router = Router();
 
@@ -208,9 +209,28 @@ router.post('/seed', async (req: Request, res: Response) => {
   }
 });
 
+// Get personalized recommendations
+router.get('/recommended', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const recommendedIds = await generateRecommendations(req.user!.userId);
+    res.json({ recommendedIds });
+  } catch (error) {
+    console.error('Get recommendations error:', error);
+    res.status(500).json({ error: 'Fehler beim Generieren der Empfehlungen' });
+  }
+});
+
 // Get all themenpakete with user progress
 router.get('/', authenticate, async (req: AuthRequest, res) => {
   try {
+    // Get recommended IDs first
+    let recommendedIds: string[] = [];
+    try {
+      recommendedIds = await generateRecommendations(req.user!.userId);
+    } catch (error) {
+      console.error('Recommendations error (non-fatal):', error);
+    }
+
     const themenpakete = await prisma.themenPaket.findMany({
       include: {
         progress: {
@@ -228,6 +248,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
       category: tp.category,
       status: tp.progress[0]?.status || 'not_started',
       progress: tp.progress[0] || null,
+      isRecommended: recommendedIds.includes(tp.id), // Mark recommended ones
     }));
 
     res.json(result);
