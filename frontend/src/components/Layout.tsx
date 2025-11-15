@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useTheme } from '../hooks/useTheme';
 import { useBranding } from '../hooks/useBranding';
-import leadaLogo from '../assets/leada_logo.png';
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,7 +11,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const { user, logout } = useStore();
   const { theme, setTheme } = useTheme();
-  const { branding, loading: brandingLoading } = useBranding();
+  const { branding } = useBranding();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -34,11 +33,17 @@ const Layout = ({ children }: LayoutProps) => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link to="/dashboard" className="flex items-center">
-              <img
-                src={branding.hasCompanyBranding && branding.logoUrl ? branding.logoUrl : leadaLogo}
-                alt={branding.companyName || 'Leada'}
-                className="h-10 w-auto"
-              />
+              {branding.hasCompanyBranding && branding.logoUrl ? (
+                <img
+                  src={branding.logoUrl}
+                  alt={branding.companyName || 'Logo'}
+                  className="h-10 w-auto"
+                />
+              ) : (
+                <div className="text-2xl font-bold" style={{ color: 'var(--accent)' }}>
+                  {branding.companyName || 'Leada'}
+                </div>
+              )}
             </Link>
             <nav className="hidden md:flex space-x-6">
               <Link to="/dashboard" className="hover:opacity-80">Dashboard</Link>

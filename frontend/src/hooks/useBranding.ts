@@ -6,7 +6,7 @@ const DEFAULT_BRANDING: CompanyBranding = {
   hasCompanyBranding: false,
   logoUrl: null,
   accentColor: '#5D9FAD',
-  companyName: null,
+  companyName: undefined,
 };
 
 export const useBranding = () => {
