@@ -9,8 +9,8 @@
   --fg-primary: #111111;
   --fg-secondary: #666666;
   --fg-tertiary: #999999;
-  --accent: #06206f;
-  --accent-hover: #041952;
+  --accent: #5D9FAD;
+  --accent-hover: #4A8A98;
   --border: #e0e0e0;
   --shadow: rgba(0, 0, 0, 0.1);
 }
@@ -22,8 +22,8 @@
   --fg-primary: #f7f7f7;
   --fg-secondary: #aaaaaa;
   --fg-tertiary: #888888;
-  --accent: #7b8cff;
-  --accent-hover: #6577ee;
+  --accent: #5D9FAD;
+  --accent-hover: #6FB4C2;
   --border: #333333;
   --shadow: rgba(255, 255, 255, 0.05);
 }

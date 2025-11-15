@@ -33,6 +33,7 @@ model UserProfile {
   userId             String   @unique
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  firstName          String?  // Vorname für personalisierte Begrüßung
   age                Int?
   gender             String?
   role               String?
@@ -164,6 +165,8 @@ model Company {
   name        String
   domain      String?  @unique
   description String?
+  logoUrl     String?  // URL zum Company-Logo (für Branding)
+  accentColor String?  // Hex-Farbe, z.B. "#5D9FAD" (für Branding)
 
   users       User[]
   documents   Document[]

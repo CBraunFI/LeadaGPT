@@ -9,6 +9,7 @@ import type {
   RoutineEntry,
   WeeklyReport,
   Document,
+  CompanyBranding,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -85,6 +86,10 @@ export const themenpaketeAPI = {
   continue: (id: string) => axiosInstance.post(`/themenpakete/${id}/continue`).then(extractData),
 
   getProgress: () => axiosInstance.get('/themenpakete/progress').then(extractData),
+
+  getNextUnit: (id: string) => axiosInstance.get(`/themenpakete/${id}/next-unit`).then(extractData),
+
+  advance: (id: string) => axiosInstance.post(`/themenpakete/${id}/advance`).then(extractData),
 };
 
 // Routinen API
@@ -154,6 +159,11 @@ export const documentsAPI = {
   },
 
   delete: (id: string) => axiosInstance.delete(`/documents/${id}`).then(extractData),
+};
+
+// Branding API
+export const brandingAPI = {
+  get: () => axiosInstance.get<CompanyBranding>('/branding').then(extractData),
 };
 
 export default axiosInstance;

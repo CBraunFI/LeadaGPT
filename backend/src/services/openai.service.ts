@@ -12,6 +12,7 @@ export interface ChatMessage {
 
 export interface UserContext {
   profile?: {
+    firstName?: string;
     age?: number;
     role?: string;
     teamSize?: number;
@@ -36,7 +37,10 @@ export const generateUserContextPrompt = (context: UserContext): string => {
   const parts: string[] = ['# Nutzerprofil'];
 
   if (context.profile) {
-    // Add onboarding status first
+    // Add firstName first for personal greeting
+    if (context.profile.firstName) parts.push(`- Name: ${context.profile.firstName}`);
+
+    // Add onboarding status
     if (context.profile.onboardingComplete !== undefined) {
       parts.push(`- Onboarding abgeschlossen: ${context.profile.onboardingComplete ? 'Ja' : 'Nein'}`);
     }
@@ -98,7 +102,7 @@ export const getChatCompletion = async (
   const response = await openai.chat.completions.create({
     model: 'gpt-4-turbo-preview',
     messages: allMessages,
-    max_tokens: 600,
+    max_tokens: 2000,  // Increased for complete responses without truncation
     temperature: 0.7,
   });
 

@@ -1,15 +1,39 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { chatAPI, routinenAPI } from '../services/api';
+import { chatAPI, routinenAPI, themenpaketeAPI } from '../services/api';
 import { ChatSession } from '../types';
+import { useStore } from '../store/useStore';
+import MessageContent from '../components/MessageContent';
+
+// Prompt suggestion pool
+const PROMPT_SUGGESTIONS = [
+  'Zeig mir, wie du mich unterstützen kannst!',
+  'Ich möchte mich zu einem bestimmten Thema fortbilden',
+  'Wie kann ich mein Team besser motivieren?',
+  'Hilf mir bei schwierigen Gesprächen',
+  'Ich brauche Tipps für effektives Zeitmanagement',
+  'Wie gehe ich mit Konflikten im Team um?',
+  'Zeig mir Techniken für konstruktives Feedback',
+  'Unterstütze mich beim Aufbau neuer Routinen',
+  'Wie delegiere ich effektiv?',
+  'Ich möchte meine Führungskompetenz entwickeln',
+];
+
+// Get random prompts from pool
+const getRandomPrompts = (count: number = 3): string[] => {
+  const shuffled = [...PROMPT_SUGGESTIONS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
 
 const Chat = () => {
+  const { user } = useStore();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [savingRoutine, setSavingRoutine] = useState<string | null>(null);
+  const [promptSuggestions] = useState<string[]>(getRandomPrompts(3));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { sessionId } = useParams<{ sessionId: string }>();
 
@@ -138,6 +162,38 @@ const Chat = () => {
     }
   };
 
+  const handleAdvance = async (themenpaketId: string) => {
+    try {
+      setIsSending(true);
+      const result = await themenpaketeAPI.advance(themenpaketId);
+
+      if (result.completed) {
+        alert('Herzlichen Glückwunsch! Sie haben dieses Themenpaket abgeschlossen!');
+      }
+
+      // Reload the current session to get the new unit
+      if (currentSession) {
+        loadSession(currentSession.id);
+      }
+    } catch (error) {
+      console.error('Error advancing to next unit:', error);
+      alert('Fehler beim Fortfahren zur nächsten Einheit');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handlePromptClick = (prompt: string) => {
+    setMessage(prompt);
+  };
+
+  const getGreeting = (): string => {
+    if (user?.profile?.firstName) {
+      return `Hallo ${user.profile.firstName}! Wie kann ich Ihnen heute helfen?`;
+    }
+    return 'Willkommen! Wie kann ich Ihnen heute helfen?';
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex h-[calc(100vh-200px)] gap-4">
@@ -225,8 +281,31 @@ const Chat = () => {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {!currentSession.messages || currentSession.messages.length === 0 ? (
-                <div className="text-center" style={{ color: 'var(--fg-secondary)' }}>
-                  <p>Stellen Sie mir eine Frage zu Führungsthemen, Ihrer Entwicklung oder starten Sie ein Themenpaket.</p>
+                <div className="text-center space-y-6">
+                  <p className="text-lg" style={{ color: 'var(--fg-secondary)' }}>
+                    {getGreeting()}
+                  </p>
+                  <p style={{ color: 'var(--fg-secondary)' }}>
+                    Stellen Sie mir eine Frage zu Führungsthemen, Ihrer Entwicklung oder starten Sie ein Themenpaket.
+                  </p>
+
+                  {/* Prompt Suggestions */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mt-8">
+                    {promptSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handlePromptClick(suggestion)}
+                        className="p-4 rounded-lg border-2 text-left transition-all hover:scale-105"
+                        style={{
+                          borderColor: 'var(--border)',
+                          backgroundColor: 'var(--bg-secondary)',
+                          color: 'var(--fg-primary)'
+                        }}
+                      >
+                        <div className="font-medium">{suggestion}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 (currentSession.messages || [])
@@ -269,15 +348,18 @@ const Chat = () => {
                                 opacity: 0.8
                               }}
                             >
-                              📚 Themenpaket-Einheit • Tag {metadata.day} • Teil {metadata.unit}
+                              Themenpaket-Einheit • Tag {metadata.day} • Teil {metadata.unit}
                             </div>
                           )}
-                          <div className="whitespace-pre-wrap">{msg.content}</div>
+                          {msg.role === 'assistant' ? (
+                            <MessageContent content={msg.content} />
+                          ) : (
+                            <div className="whitespace-pre-wrap">{msg.content}</div>
+                          )}
 
                           {hasRoutineSuggestion && (
                             <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
                               <div className="flex items-start gap-3 p-3 rounded" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}>
-                                <div className="text-2xl">🔁</div>
                                 <div className="flex-1">
                                   <div className="font-semibold mb-1" style={{ color: 'var(--fg-primary)' }}>
                                     {metadata.routine_suggestion.title}
@@ -286,9 +368,9 @@ const Chat = () => {
                                     {metadata.routine_suggestion.description}
                                   </div>
                                   <div className="text-xs" style={{ color: 'var(--fg-secondary)' }}>
-                                    📅 {metadata.routine_suggestion.frequency === 'daily' ? 'Täglich' :
-                                         metadata.routine_suggestion.frequency === 'weekly' ? 'Wöchentlich' :
-                                         metadata.routine_suggestion.frequency === 'monthly' ? 'Monatlich' : 'Individuell'}
+                                    {metadata.routine_suggestion.frequency === 'daily' ? 'Täglich' :
+                                     metadata.routine_suggestion.frequency === 'weekly' ? 'Wöchentlich' :
+                                     metadata.routine_suggestion.frequency === 'monthly' ? 'Monatlich' : 'Individuell'}
                                     {metadata.routine_suggestion.target && ` • ${metadata.routine_suggestion.target}x/Woche`}
                                   </div>
                                 </div>
@@ -302,7 +384,23 @@ const Chat = () => {
                                   color: 'white'
                                 }}
                               >
-                                {savingRoutine === msg.id ? 'Speichert...' : '✓ Als Routine speichern'}
+                                {savingRoutine === msg.id ? 'Speichert...' : 'Als Routine speichern'}
+                              </button>
+                            </div>
+                          )}
+
+                          {isThemenPaketUnit && metadata?.themenpaket_id && (
+                            <div className="mt-4">
+                              <button
+                                onClick={() => handleAdvance(metadata.themenpaket_id)}
+                                disabled={isSending}
+                                className="w-full py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                style={{
+                                  backgroundColor: 'var(--accent)',
+                                  color: 'white'
+                                }}
+                              >
+                                {isSending ? 'Lädt...' : 'Weiter →'}
                               </button>
                             </div>
                           )}

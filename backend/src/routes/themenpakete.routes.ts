@@ -419,4 +419,121 @@ router.get('/progress', authenticate, async (req: AuthRequest, res) => {
   }
 });
 
+// Get next unit for themenpaket (for "Weiter" button)
+router.get('/:id/next-unit', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get progress
+    const progress = await prisma.userThemenPaketProgress.findUnique({
+      where: {
+        userId_themenPaketId: {
+          userId: req.user!.userId,
+          themenPaketId: id,
+        },
+      },
+      include: {
+        themenPaket: true,
+      },
+    });
+
+    if (!progress) {
+      return res.status(404).json({ error: 'Progress nicht gefunden' });
+    }
+
+    // Calculate current unit's order
+    const currentOrder = (progress.currentDay - 1) * progress.themenPaket.unitsPerDay + progress.currentUnit;
+
+    // Get current unit
+    const unit = await prisma.learningUnit.findFirst({
+      where: {
+        themenPaketId: id,
+        order: currentOrder,
+      },
+    });
+
+    res.json({
+      unit,
+      progress: {
+        currentDay: progress.currentDay,
+        currentUnit: progress.currentUnit,
+        totalDays: progress.themenPaket.duration,
+        unitsPerDay: progress.themenPaket.unitsPerDay,
+      },
+    });
+  } catch (error) {
+    console.error('Get next unit error:', error);
+    res.status(500).json({ error: 'Fehler beim Abrufen der nächsten Einheit' });
+  }
+});
+
+// Advance to next unit (for "Weiter" button)
+router.post('/:id/advance', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    const progress = await prisma.userThemenPaketProgress.findUnique({
+      where: {
+        userId_themenPaketId: {
+          userId: req.user!.userId,
+          themenPaketId: id,
+        },
+      },
+      include: {
+        themenPaket: true,
+      },
+    });
+
+    if (!progress) {
+      return res.status(404).json({ error: 'Progress nicht gefunden' });
+    }
+
+    const { themenPaket } = progress;
+    let newDay = progress.currentDay;
+    let newUnit = progress.currentUnit;
+    let completed = false;
+
+    // Advance to next unit
+    if (newUnit < themenPaket.unitsPerDay) {
+      newUnit++;
+    } else {
+      // Move to next day
+      if (newDay < themenPaket.duration) {
+        newDay++;
+        newUnit = 1;
+      } else {
+        // Themenpaket completed
+        completed = true;
+      }
+    }
+
+    // Update progress
+    const updatedProgress = await prisma.userThemenPaketProgress.update({
+      where: {
+        userId_themenPaketId: {
+          userId: req.user!.userId,
+          themenPaketId: id,
+        },
+      },
+      data: {
+        currentDay: newDay,
+        currentUnit: newUnit,
+        status: completed ? 'completed' : 'active',
+        completedAt: completed ? new Date() : null,
+      },
+      include: {
+        themenPaket: true,
+      },
+    });
+
+    res.json({
+      progress: updatedProgress,
+      completed,
+    });
+  } catch (error) {
+    console.error('Advance unit error:', error);
+    res.status(500).json({ error: 'Fehler beim Fortschreiten zur nächsten Einheit' });
+  }
+});
+
 export default router;

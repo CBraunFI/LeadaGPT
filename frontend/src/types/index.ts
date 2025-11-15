@@ -8,6 +8,7 @@ export interface User {
 export interface UserProfile {
   id: string;
   userId: string;
+  firstName?: string;
   age?: number;
   gender?: string;
   role?: string;
@@ -21,6 +22,14 @@ export interface UserProfile {
 export interface AuthResponse {
   token: string;
   user: User;
+}
+
+// Branding types
+export interface CompanyBranding {
+  hasCompanyBranding: boolean;
+  logoUrl: string | null;
+  accentColor: string;
+  companyName?: string;
 }
 
 // Chat types
