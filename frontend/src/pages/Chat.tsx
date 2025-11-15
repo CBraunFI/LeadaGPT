@@ -222,37 +222,65 @@ const Chat = () => {
               Noch keine Chats vorhanden
             </div>
           ) : (
-            sessions.map((session) => (
-              <div
-                key={session.id}
-                onClick={() => loadSession(session.id)}
-                className="p-4 border-b cursor-pointer hover:bg-opacity-50 transition-colors"
-                style={{
-                  borderColor: 'var(--border)',
-                  backgroundColor: currentSession?.id === session.id ? 'var(--bg-secondary)' : 'transparent'
-                }}
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">
-                      {session.title || 'Neuer Chat'}
+            sessions.map((session) => {
+              const chatIcon = {
+                'profil': '👤',
+                'ki-briefing': '📊',
+                'themenpaket': '📚',
+                'routine': '✓',
+                'general': '💬',
+              }[session.chatType || 'general'];
+
+              return (
+                <div
+                  key={session.id}
+                  onClick={() => loadSession(session.id)}
+                  className="p-4 border-b cursor-pointer hover:bg-opacity-50 transition-colors"
+                  style={{
+                    borderColor: 'var(--border)',
+                    backgroundColor: currentSession?.id === session.id ? 'var(--bg-secondary)' : 'transparent'
+                  }}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="text-lg">{chatIcon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium truncate">
+                            {session.title || 'Neuer Chat'}
+                          </div>
+                          {session.isPinned && (
+                            <span
+                              className="text-xs px-2 py-0.5 rounded"
+                              style={{
+                                backgroundColor: 'var(--accent)',
+                                color: 'white',
+                              }}
+                            >
+                              Fixiert
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm mt-1" style={{ color: 'var(--fg-secondary)' }}>
+                          {formatTime(session.createdAt)}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm mt-1" style={{ color: 'var(--fg-secondary)' }}>
-                      {formatTime(session.createdAt)}
-                    </div>
+                    {!session.isPinned && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSession(session.id);
+                        }}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >
+                        Löschen
+                      </button>
+                    )}
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteSession(session.id);
-                    }}
-                    className="text-red-500 hover:text-red-700 text-sm"
-                  >
-                    Löschen
-                  </button>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

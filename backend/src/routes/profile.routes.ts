@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import prisma from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { generateProfileSummary } from '../services/summary.service';
 
 const router = Router();
 
@@ -81,6 +82,55 @@ router.post('/onboarding', authenticate, async (req: AuthRequest, res: Response)
   } catch (error) {
     console.error('Complete onboarding error:', error);
     res.status(500).json({ error: 'Fehler beim Abschließen des Onboardings' });
+  }
+});
+
+// Get AI-generated profile summary
+router.get('/summary', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const summary = await generateProfileSummary(req.user!.userId);
+    res.json({ summary });
+  } catch (error) {
+    console.error('Get profile summary error:', error);
+    res.status(500).json({ error: 'Fehler beim Erstellen der Profil-Zusammenfassung' });
+  }
+});
+
+// Get or create Profile Reflection Chat
+router.get('/reflection-chat', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    // Check if chat already exists
+    let chat = await prisma.chatSession.findFirst({
+      where: {
+        userId: req.user!.userId,
+        chatType: 'profil',
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    // Create if doesn't exist
+    if (!chat) {
+      chat = await prisma.chatSession.create({
+        data: {
+          userId: req.user!.userId,
+          title: 'Meine Entwicklung',
+          chatType: 'profil',
+          isPinned: true,
+        },
+        include: {
+          messages: true,
+        },
+      });
+    }
+
+    res.json(chat);
+  } catch (error) {
+    console.error('Get profile reflection chat error:', error);
+    res.status(500).json({ error: 'Fehler beim Abrufen des Reflexions-Chats' });
   }
 });
 

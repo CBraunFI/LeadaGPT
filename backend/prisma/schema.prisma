@@ -53,6 +53,10 @@ model ChatSession {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   title     String?   // Optional: "Feedback-Coaching", etc.
+  chatType  String    @default("general") // "general" | "themenpaket" | "routine" | "profil" | "ki-briefing"
+  isPinned  Boolean   @default(false) // Special chats are pinned to top
+  linkedEntityId String? // Optional: ID of linked Routine or ThemenPaket
+
   messages  Message[]
   themenPaketProgress UserThemenPaketProgress?
   createdAt DateTime  @default(now())

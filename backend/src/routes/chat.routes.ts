@@ -177,7 +177,10 @@ router.get('/sessions', authenticate, async (req: AuthRequest, res) => {
   try {
     const sessions = await prisma.chatSession.findMany({
       where: { userId: req.user!.userId },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [
+        { isPinned: 'desc' }, // Pinned chats first
+        { updatedAt: 'desc' },
+      ],
       include: {
         messages: {
           take: 1,
@@ -196,10 +199,15 @@ router.get('/sessions', authenticate, async (req: AuthRequest, res) => {
 // Create new session
 router.post('/sessions', authenticate, async (req: AuthRequest, res) => {
   try {
+    const { title, chatType, isPinned, linkedEntityId } = req.body;
+
     const session = await prisma.chatSession.create({
       data: {
         userId: req.user!.userId,
-        title: req.body.title || null,
+        title: title || null,
+        chatType: chatType || 'general',
+        isPinned: isPinned || false,
+        linkedEntityId: linkedEntityId || null,
       },
       include: {
         messages: true,

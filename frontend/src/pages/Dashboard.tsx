@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { themenpaketeAPI, routinenAPI, chatAPI, reportsAPI } from '../services/api';
-import { ThemenPaket, Routine, WeeklyReport } from '../types';
+import { themenpaketeAPI, dashboardAPI } from '../services/api';
+import { ThemenPaket } from '../types';
+
+type Period = 'week' | 'month' | '3months' | '6months' | 'all';
 
 const Dashboard = () => {
   const user = useStore((state) => state.user);
+  const navigate = useNavigate();
   const [themenpakete, setThemenpakete] = useState<ThemenPaket[]>([]);
-  const [routines, setRoutines] = useState<Routine[]>([]);
-  const [latestReport, setLatestReport] = useState<WeeklyReport | null>(null);
-  const [sessionsCount, setSessionsCount] = useState(0);
+  const [period, setPeriod] = useState<Period>('week');
+  const [activitySummary, setActivitySummary] = useState<string>('');
+  const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [period]);
 
   const loadDashboardData = async () => {
     try {
@@ -25,22 +28,13 @@ const Dashboard = () => {
       const activeThemenpakete = themenpaketeData.filter((tp: any) => tp.progress?.status === 'active');
       setThemenpakete(activeThemenpakete);
 
-      // Load active Routines
-      const routinesData = await routinenAPI.getAll();
-      const activeRoutines = routinesData.filter((r: any) => r.status === 'active').slice(0, 5);
-      setRoutines(activeRoutines);
+      // Load activity summary
+      const summaryData = await dashboardAPI.getActivitySummary(period);
+      setActivitySummary(summaryData.summary);
 
-      // Load latest report
-      try {
-        const report = await reportsAPI.getLatest();
-        setLatestReport(report);
-      } catch (error) {
-        // No report yet
-      }
-
-      // Load chat sessions count
-      const sessions = await chatAPI.getSessions();
-      setSessionsCount(sessions.length);
+      // Load stats
+      const statsData = await dashboardAPI.getStats(period);
+      setStats(statsData);
 
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -54,6 +48,23 @@ const Dashboard = () => {
     if (hour < 12) return 'Guten Morgen';
     if (hour < 18) return 'Guten Tag';
     return 'Guten Abend';
+  };
+
+  const handleKIBriefing = async () => {
+    try {
+      const chat = await dashboardAPI.getKIBriefingChat();
+      navigate(`/chat/${chat.id}`);
+    } catch (error) {
+      console.error('Error opening KI-Briefing:', error);
+    }
+  };
+
+  const periodLabels: Record<Period, string> = {
+    week: 'Letzte 7 Tage',
+    month: 'Letzter Monat',
+    '3months': 'Letzte 3 Monate',
+    '6months': 'Letzte 6 Monate',
+    all: 'Seit Beginn',
   };
 
   if (isLoading) {
@@ -77,6 +88,58 @@ const Dashboard = () => {
           Willkommen zurück bei Leada Chat
         </p>
       </div>
+
+      {/* Period Selector */}
+      <div className="mb-6 flex items-center gap-2 flex-wrap">
+        <span style={{ color: 'var(--fg-secondary)' }} className="text-sm font-medium">
+          Zeitraum:
+        </span>
+        {(Object.keys(periodLabels) as Period[]).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{
+              backgroundColor: period === p ? 'var(--accent)' : 'var(--bg-secondary)',
+              color: period === p ? 'white' : 'var(--fg-primary)',
+              border: `1px solid ${period === p ? 'var(--accent)' : 'var(--border)'}`,
+            }}
+          >
+            {periodLabels[p]}
+          </button>
+        ))}
+      </div>
+
+      {/* Activity Summary */}
+      {activitySummary && (
+        <div
+          className="mb-8 p-6 rounded-lg border"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            borderColor: 'var(--accent)',
+            borderWidth: '2px',
+          }}
+        >
+          <div className="flex justify-between items-start mb-3">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--accent)' }}>
+              Ihre Aktivität ({periodLabels[period]})
+            </h2>
+            <button
+              onClick={handleKIBriefing}
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: 'var(--accent)',
+                color: 'white',
+              }}
+            >
+              📊 KI-Briefing
+            </button>
+          </div>
+          <p style={{ color: 'var(--fg-primary)' }} className="text-base leading-relaxed">
+            {activitySummary}
+          </p>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -111,17 +174,17 @@ const Dashboard = () => {
         </Link>
 
         <Link
-          to="/routinen"
+          to="/profil"
           className="p-6 rounded-lg border hover:shadow-lg transition-all"
           style={{
             backgroundColor: 'var(--bg-secondary)',
             borderColor: 'var(--border)'
           }}
         >
-          <div className="text-2xl mb-2">✓</div>
-          <h3 className="font-bold mb-1">Routinen</h3>
+          <div className="text-2xl mb-2">👤</div>
+          <h3 className="font-bold mb-1">Mein Profil</h3>
           <p className="text-sm" style={{ color: 'var(--fg-secondary)' }}>
-            Verwalten Sie Ihre täglichen Gewohnheiten
+            Reflexion & Entwicklung
           </p>
         </Link>
       </div>
@@ -199,7 +262,7 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Active Routines */}
+        {/* Statistics */}
         <div
           className="p-6 rounded-lg border"
           style={{
@@ -207,124 +270,28 @@ const Dashboard = () => {
             borderColor: 'var(--border)'
           }}
         >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Ihre Routinen</h2>
-            <Link
-              to="/routinen"
-              className="text-sm"
-              style={{ color: 'var(--accent)' }}
-            >
-              Alle anzeigen →
-            </Link>
-          </div>
-
-          {routines.length === 0 ? (
-            <p style={{ color: 'var(--fg-secondary)' }}>
-              Noch keine Routinen angelegt. Erstellen Sie Ihre erste Routine!
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {routines.map((routine) => {
-                const today = new Date().toISOString().split('T')[0];
-                const todayEntry = routine.entries.find(e => e.date.startsWith(today));
-                const isCompletedToday = todayEntry?.completed || false;
-
-                return (
-                  <div
-                    key={routine.id}
-                    className="p-4 rounded border"
-                    style={{
-                      backgroundColor: 'var(--bg-primary)',
-                      borderColor: 'var(--border)'
-                    }}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{routine.title}</h3>
-                        <p className="text-sm" style={{ color: 'var(--fg-secondary)' }}>
-                          {routine.frequency === 'daily' ? 'Täglich' :
-                           routine.frequency === 'weekly' ? 'Wöchentlich' : 'Custom'}
-                        </p>
-                      </div>
-                      <div>
-                        {isCompletedToday ? (
-                          <span className="text-green-500 text-2xl">✓</span>
-                        ) : (
-                          <span className="text-gray-400 text-2xl">○</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div
-          className="p-6 rounded-lg border"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            borderColor: 'var(--border)'
-          }}
-        >
-          <h2 className="text-xl font-bold mb-4">Ihre Statistik</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span style={{ color: 'var(--fg-secondary)' }}>Chat-Sitzungen</span>
-              <span className="font-bold text-xl">{sessionsCount}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span style={{ color: 'var(--fg-secondary)' }}>Aktive Themenpakete</span>
-              <span className="font-bold text-xl">{themenpakete.length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span style={{ color: 'var(--fg-secondary)' }}>Aktive Routinen</span>
-              <span className="font-bold text-xl">{routines.length}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Latest Report */}
-        <div
-          className="p-6 rounded-lg border"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            borderColor: 'var(--border)'
-          }}
-        >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Wöchentlicher Bericht</h2>
-            <Link
-              to="/reports"
-              className="text-sm"
-              style={{ color: 'var(--accent)' }}
-            >
-              Alle anzeigen →
-            </Link>
-          </div>
-
-          {latestReport ? (
-            <div>
-              <p className="text-sm mb-3" style={{ color: 'var(--fg-secondary)' }}>
-                {new Date(latestReport.weekStart).toLocaleDateString('de-DE')} - {new Date(latestReport.weekEnd).toLocaleDateString('de-DE')}
-              </p>
-              {latestReport.recommendations.length > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Empfehlungen:</h3>
-                  <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--fg-secondary)' }}>
-                    {latestReport.recommendations.slice(0, 3).map((rec, idx) => (
-                      <li key={idx} className="text-sm">{rec}</li>
-                    ))}
-                  </ul>
+          <h2 className="text-xl font-bold mb-4">Statistik ({periodLabels[period]})</h2>
+          {stats && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span style={{ color: 'var(--fg-secondary)' }}>Chat-Sessions</span>
+                <span className="font-bold text-xl">{stats.chatSessions}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span style={{ color: 'var(--fg-secondary)' }}>Nachrichten</span>
+                <span className="font-bold text-xl">{stats.messages}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span style={{ color: 'var(--fg-secondary)' }}>Aktive Themenpakete</span>
+                <span className="font-bold text-xl">{stats.themenpakete}</span>
+              </div>
+              {stats.routineCompletions > 0 && (
+                <div className="flex justify-between items-center">
+                  <span style={{ color: 'var(--fg-secondary)' }}>Routine-Durchführungen</span>
+                  <span className="font-bold text-xl">{stats.routineCompletions}</span>
                 </div>
               )}
             </div>
-          ) : (
-            <p style={{ color: 'var(--fg-secondary)' }}>
-              Noch kein Bericht verfügbar. Nutzen Sie Leada Chat eine Woche, um Ihren ersten Bericht zu generieren.
-            </p>
           )}
         </div>
       </div>

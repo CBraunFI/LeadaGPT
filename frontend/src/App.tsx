@@ -11,9 +11,7 @@ import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Themenpakete from './pages/Themenpakete';
 import ThemenpaketDetail from './pages/ThemenpaketDetail';
-import Routinen from './pages/Routinen';
 import Profile from './pages/Profile';
-import Reports from './pages/Reports';
 import MeinBereich from './pages/MeinBereich';
 import MeinUnternehmen from './pages/MeinUnternehmen';
 
@@ -78,9 +76,7 @@ function App() {
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/themenpakete" element={<Themenpakete />} />
                   <Route path="/themenpakete/:id" element={<ThemenpaketDetail />} />
-                  <Route path="/routinen" element={<Routinen />} />
                   <Route path="/profil" element={<Profile />} />
-                  <Route path="/reports" element={<Reports />} />
                   <Route path="/mein-bereich" element={<MeinBereich />} />
                   <Route path="/mein-unternehmen" element={<MeinUnternehmen />} />
                   <Route path="*" element={<Navigate to="/chat" />} />

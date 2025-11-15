@@ -37,6 +37,9 @@ export interface ChatSession {
   id: string;
   userId: string;
   title?: string;
+  chatType: 'general' | 'themenpaket' | 'routine' | 'profil' | 'ki-briefing';
+  isPinned: boolean;
+  linkedEntityId?: string;
   messages: Message[];
   createdAt: string;
   updatedAt: string;

@@ -49,7 +49,6 @@ const Layout = ({ children }: LayoutProps) => {
               <Link to="/dashboard" className="hover:opacity-80">Dashboard</Link>
               <Link to="/chat" className="hover:opacity-80">Chat</Link>
               <Link to="/themenpakete" className="hover:opacity-80">Themenpakete</Link>
-              <Link to="/routinen" className="hover:opacity-80">Routinen</Link>
             </nav>
           </div>
 
@@ -72,7 +71,6 @@ const Layout = ({ children }: LayoutProps) => {
                 <Link to="/profil" className="block px-4 py-2 hover:opacity-80">Profil</Link>
                 <Link to="/mein-bereich" className="block px-4 py-2 hover:opacity-80">Mein Bereich</Link>
                 <Link to="/mein-unternehmen" className="block px-4 py-2 hover:opacity-80">Mein Unternehmen</Link>
-                <Link to="/reports" className="block px-4 py-2 hover:opacity-80">Reports</Link>
                 <button onClick={handleLogout} className="block w-full text-left px-4 py-2 hover:opacity-80">Logout</button>
               </div>
             </div>

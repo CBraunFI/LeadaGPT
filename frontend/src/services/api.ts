@@ -53,14 +53,23 @@ export const profileAPI = {
   update: (data: Partial<UserProfile>) => axiosInstance.put<UserProfile>('/profile', data).then(extractData),
 
   completeOnboarding: () => axiosInstance.post<UserProfile>('/profile/onboarding').then(extractData),
+
+  getSummary: () => axiosInstance.get<{ summary: string }>('/profile/summary').then(extractData),
+
+  getReflectionChat: () => axiosInstance.get<ChatSession>('/profile/reflection-chat').then(extractData),
 };
 
 // Chat API
 export const chatAPI = {
   getSessions: () => axiosInstance.get<ChatSession[]>('/chat/sessions').then(extractData),
 
-  createSession: (title?: string) =>
-    axiosInstance.post<ChatSession>('/chat/sessions', { title }).then(extractData),
+  createSession: (data?: {
+    title?: string;
+    chatType?: string;
+    isPinned?: boolean;
+    linkedEntityId?: string;
+  }) =>
+    axiosInstance.post<ChatSession>('/chat/sessions', data || {}).then(extractData),
 
   getSession: (id: string) => axiosInstance.get<ChatSession>(`/chat/sessions/${id}`).then(extractData),
 
@@ -164,6 +173,17 @@ export const documentsAPI = {
 // Branding API
 export const brandingAPI = {
   get: () => axiosInstance.get<CompanyBranding>('/branding').then(extractData),
+};
+
+// Dashboard API
+export const dashboardAPI = {
+  getActivitySummary: (period: 'week' | 'month' | '3months' | '6months' | 'all' = 'week') =>
+    axiosInstance.get<{ summary: string; period: string }>(`/dashboard/activity-summary?period=${period}`).then(extractData),
+
+  getKIBriefingChat: () => axiosInstance.get<ChatSession>('/dashboard/ki-briefing-chat').then(extractData),
+
+  getStats: (period: 'week' | 'month' | '3months' | '6months' | 'all' = 'week') =>
+    axiosInstance.get(`/dashboard/stats?period=${period}`).then(extractData),
 };
 
 export default axiosInstance;
