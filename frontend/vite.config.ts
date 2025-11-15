@@ -16,8 +16,20 @@ export default defineConfig({
         orientation: 'portrait-primary',
         background_color: '#ffffff',
         theme_color: '#06206f',
-        // Icons can be added later in public/icons/ directory
-        icons: [],
+        icons: [
+          {
+            src: '/icons/icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+          {
+            src: '/icons/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
       },
       workbox: {
         runtimeCaching: [
