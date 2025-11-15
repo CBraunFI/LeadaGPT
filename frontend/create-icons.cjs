@@ -1,14 +1,25 @@
+/**
+ * Icon Generator Script
+ *
+ * This script generates PWA icons for the Leada Chat application.
+ *
+ * IMPORTANT: This script requires the 'sharp' package to be installed.
+ * Since sharp is not in package.json (to avoid build issues on Render),
+ * you need to install it manually when regenerating icons:
+ *
+ *   npm install sharp --no-save
+ *
+ * Then run this script:
+ *   node create-icons.cjs
+ *
+ * The generated icons are already committed to the repository,
+ * so this script only needs to be run when icons need to be updated.
+ */
+
 const fs = require('fs');
 const path = require('path');
 
-// Create a simple SVG and convert it to PNG using a canvas approach
-// Since we don't have image manipulation libraries, we'll create minimal valid PNGs
-
-// This is a minimal valid 192x192 PNG (solid color)
-// Create using base64 encoded data for a simple blue square
 function createMinimalPNG(size, color = '#06206f') {
-  // For now, we'll create a very simple SVG that can be used as a fallback
-  // But actually, let's check if we can install a package
   console.log('Checking for image manipulation packages...');
 
   try {
