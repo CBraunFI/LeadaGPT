@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { adminUsersAPI } from '../../services/adminApi';
-import type { AdminUser } from '../../types';
+import { adminUsersAPI, adminCompaniesAPI, adminUserManagementAPI } from '../../services/adminApi';
+import type { AdminUser, Company } from '../../types';
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -9,11 +9,31 @@ const UserManagement: React.FC = () => {
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
 
+  // Companies for assignment dropdown
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  // Promotion modal state
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [selectedUserForPromotion, setSelectedUserForPromotion] = useState<AdminUser | null>(null);
+  const [promotionName, setPromotionName] = useState('');
+  const [promotionPassword, setPromotionPassword] = useState('');
+  const [promoting, setPromoting] = useState(false);
+
   const limit = 20;
 
   useEffect(() => {
     loadUsers();
+    loadCompanies();
   }, [page]);
+
+  const loadCompanies = async () => {
+    try {
+      const companiesData = await adminCompaniesAPI.getList();
+      setCompanies(companiesData);
+    } catch (err) {
+      console.error('Error loading companies:', err);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -55,6 +75,57 @@ const UserManagement: React.FC = () => {
       loadUsers();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Fehler beim Löschen des Nutzers');
+    }
+  };
+
+  const handleCompanyAssignment = async (userId: string, companyId: string | null) => {
+    try {
+      await adminUserManagementAPI.assignToCompany(userId, companyId);
+      loadUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Fehler beim Zuweisen des Unternehmens');
+    }
+  };
+
+  const handleOpenPromoteModal = (user: AdminUser) => {
+    setSelectedUserForPromotion(user);
+    setPromotionName('');
+    setPromotionPassword('');
+    setShowPromoteModal(true);
+  };
+
+  const handlePromoteToAdmin = async () => {
+    if (!selectedUserForPromotion) return;
+
+    if (!promotionName.trim()) {
+      alert('Bitte geben Sie einen Namen für den Admin ein');
+      return;
+    }
+
+    if (promotionPassword.length < 6) {
+      alert('Das Passwort muss mindestens 6 Zeichen lang sein');
+      return;
+    }
+
+    if (!selectedUserForPromotion.company) {
+      alert('Der Nutzer muss zuerst einem Unternehmen zugeordnet werden');
+      return;
+    }
+
+    try {
+      setPromoting(true);
+      await adminUserManagementAPI.promoteToAdmin(selectedUserForPromotion.id, {
+        name: promotionName,
+        password: promotionPassword,
+      });
+
+      alert(`${selectedUserForPromotion.email} wurde erfolgreich zu Company Admin ernannt!`);
+      setShowPromoteModal(false);
+      loadUsers();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Fehler beim Ernennen zum Admin');
+    } finally {
+      setPromoting(false);
     }
   };
 
@@ -173,13 +244,18 @@ const UserManagement: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {user.company ? (
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900">{user.company.name}</div>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">-</span>
-                    )}
+                    <select
+                      value={user.company?.id || ''}
+                      onChange={(e) => handleCompanyAssignment(user.id, e.target.value || null)}
+                      className="text-sm border border-gray-300 rounded-md px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Kein Unternehmen</option>
+                      {companies.map((company) => (
+                        <option key={company.id} value={company.id}>
+                          {company.name}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -194,6 +270,15 @@ const UserManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleOpenPromoteModal(user)}
+                        className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
+                        title="Zu Company Admin machen"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      </button>
                       {user.authProvider === 'local' && (
                         <button
                           onClick={() => handleResetPassword(user.id)}
@@ -248,6 +333,84 @@ const UserManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Promote to Admin Modal */}
+      {showPromoteModal && selectedUserForPromotion && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Nutzer zu Company Admin machen
+            </h2>
+
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Nutzer:</span> {selectedUserForPromotion.email}
+              </p>
+              {selectedUserForPromotion.company && (
+                <p className="text-sm text-gray-700 mt-1">
+                  <span className="font-medium">Unternehmen:</span> {selectedUserForPromotion.company.name}
+                </p>
+              )}
+            </div>
+
+            {!selectedUserForPromotion.company && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  Dieser Nutzer muss zuerst einem Unternehmen zugeordnet werden.
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Admin-Name *
+                </label>
+                <input
+                  type="text"
+                  value={promotionName}
+                  onChange={(e) => setPromotionName(e.target.value)}
+                  placeholder="z.B. Max Mustermann"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Admin-Passwort * (min. 6 Zeichen)
+                </label>
+                <input
+                  type="password"
+                  value={promotionPassword}
+                  onChange={(e) => setPromotionPassword(e.target.value)}
+                  placeholder="Sicheres Passwort"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Der Nutzer kann sich mit diesem Passwort im Company-Admin-Portal anmelden.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPromoteModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                disabled={promoting}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handlePromoteToAdmin}
+                disabled={promoting || !selectedUserForPromotion.company}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {promoting ? 'Ernennen...' : 'Zu Admin machen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

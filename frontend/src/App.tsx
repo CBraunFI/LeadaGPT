@@ -20,6 +20,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import CompanyManagement from './pages/admin/CompanyManagement';
+import CompanyDetail from './pages/admin/CompanyDetail';
 
 // Company Admin Pages
 import CompanyAdminDashboard from './pages/company-admin/CompanyAdminDashboard';
@@ -68,6 +69,7 @@ function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="companies" element={<CompanyManagement />} />
+          <Route path="companies/:companyId" element={<CompanyDetail />} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
 
