@@ -198,6 +198,20 @@ model Document {
   updatedAt     DateTime @updatedAt
 }
 
+model CachedData {
+  id        String   @id @default(cuid())
+  userId    String
+  cacheKey  String   // e.g., "recommendations", "dashboard_summary_week", "profile_summary"
+  data      String   @db.Text // JSON-serialized cached data
+  expiresAt DateTime // TTL: When this cache entry expires
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, cacheKey])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model Admin {
   id           String   @id @default(cuid())
   email        String   @unique

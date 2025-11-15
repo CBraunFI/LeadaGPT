@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { getChatCompletion } from './openai.service';
+import { getOrCompute, CACHE_TTL, deleteCache, invalidateCachePattern } from './cache.service';
 
 const prisma = new PrismaClient();
 
@@ -48,8 +49,22 @@ interface ActivitySummaryData {
 
 /**
  * Generate AI-powered profile summary (max 100 words)
+ *
+ * CACHED: 12 hours - profile changes slowly
  */
 export async function generateProfileSummary(userId: string): Promise<string> {
+  return getOrCompute(
+    userId,
+    'profile_summary',
+    () => computeProfileSummary(userId),
+    CACHE_TTL.PROFILE_SUMMARY
+  );
+}
+
+/**
+ * Internal: Compute profile summary (uncached)
+ */
+async function computeProfileSummary(userId: string): Promise<string> {
   try {
     // Gather all relevant profile data
     const profile = await prisma.userProfile.findUnique({
@@ -156,8 +171,33 @@ Erstelle eine zusammenhängende, natürliche Zusammenfassung in Fließtext-Form 
 
 /**
  * Generate AI-powered activity summary for dashboard (max 3 sentences, max 40 words)
+ *
+ * CACHED: Variable TTL based on period
+ * - week: 1h (active data)
+ * - month: 6h (semi-active)
+ * - 3m/6m/all: 24h (historical data)
  */
 export async function generateActivitySummary(
+  userId: string,
+  period: 'week' | 'month' | '3months' | '6months' | 'all'
+): Promise<string> {
+  // Determine TTL based on period
+  const ttl =
+    period === 'week'
+      ? CACHE_TTL.DASHBOARD_WEEK
+      : period === 'month'
+      ? CACHE_TTL.DASHBOARD_MONTH
+      : CACHE_TTL.DASHBOARD_LONG;
+
+  const cacheKey = `dashboard_summary_${period}`;
+
+  return getOrCompute(userId, cacheKey, () => computeActivitySummary(userId, period), ttl);
+}
+
+/**
+ * Internal: Compute activity summary (uncached)
+ */
+async function computeActivitySummary(
   userId: string,
   period: 'week' | 'month' | '3months' | '6months' | 'all'
 ): Promise<string> {
@@ -283,4 +323,28 @@ WICHTIG: Erstelle genau 1-3 kurze Sätze, maximal 40 Wörter insgesamt. Fokus au
     console.error('Error generating activity summary:', error);
     return 'Aktivitätszusammenfassung konnte nicht generiert werden.';
   }
+}
+
+/**
+ * Invalidate profile summary cache
+ *
+ * Call this when:
+ * - User profile is updated
+ * - User completes a major milestone
+ */
+export async function invalidateProfileSummary(userId: string): Promise<void> {
+  await deleteCache(userId, 'profile_summary');
+  console.log(`Invalidated profile summary cache for user ${userId}`);
+}
+
+/**
+ * Invalidate all dashboard summaries
+ *
+ * Call this when:
+ * - New chat session is created (significant activity)
+ * - User starts/completes Themenpaket
+ */
+export async function invalidateDashboardSummaries(userId: string): Promise<void> {
+  await invalidateCachePattern(userId, 'dashboard_summary_');
+  console.log(`Invalidated all dashboard summaries for user ${userId}`);
 }

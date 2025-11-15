@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { getChatCompletion } from './openai.service';
+import { getOrCompute, CACHE_TTL, deleteCache } from './cache.service';
 
 /**
  * Recommendation Service
@@ -9,6 +10,8 @@ import { getChatCompletion } from './openai.service';
  * - Chat history (topics discussed, challenges mentioned)
  * - Current Themenpakete progress
  * - Usage patterns
+ *
+ * PERFORMANCE: Results are cached for 24h to avoid repeated GPT-4 calls
  */
 
 interface RecommendationContext {
@@ -121,8 +124,22 @@ async function gatherRecommendationContext(userId: string): Promise<Recommendati
 
 /**
  * Generates 5 personalized Themenpaket recommendations using AI
+ *
+ * CACHED: 24 hours - recommendations don't change often
  */
 export async function generateRecommendations(userId: string): Promise<string[]> {
+  return getOrCompute(
+    userId,
+    'recommendations',
+    () => computeRecommendations(userId),
+    CACHE_TTL.RECOMMENDATIONS
+  );
+}
+
+/**
+ * Internal: Compute recommendations (uncached)
+ */
+async function computeRecommendations(userId: string): Promise<string[]> {
   // Gather context
   const context = await gatherRecommendationContext(userId);
 
@@ -209,4 +226,17 @@ Gib NUR die exakten Titel der 5 empfohlenen Themenpakete zurück, jeweils in ein
     // Fallback: return first 5 Themenpakete
     return allThemenpakete.slice(0, 5).map(tp => tp.id);
   }
+}
+
+/**
+ * Invalidate recommendations cache
+ *
+ * Call this when:
+ * - User profile is updated
+ * - User starts/completes a Themenpaket
+ * - User goals change significantly
+ */
+export async function invalidateRecommendations(userId: string): Promise<void> {
+  await deleteCache(userId, 'recommendations');
+  console.log(`Invalidated recommendations cache for user ${userId}`);
 }
