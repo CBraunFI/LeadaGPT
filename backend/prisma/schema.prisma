@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -186,7 +186,7 @@ model Document {
   fileType      String   // "pdf" | "docx" | "txt"
   fileSize      Int      // in bytes
   category      String   // "personal" | "company"
-  extractedText String?  // Extrahierter Text aus dem Dokument
+  extractedText String?  @db.Text // Extrahierter Text aus dem Dokument
   metadata      String?  // JSON string für zusätzliche Infos
 
   uploadedAt    DateTime @default(now())
@@ -215,7 +215,7 @@ model AdminAuditLog {
 
   action   String   // "user_view" | "user_edit" | "user_delete" | "password_reset" | "login" | etc.
   targetId String?  // ID of the affected resource (e.g., userId)
-  details  String?  // JSON string with additional context
+  details  String?  @db.Text // JSON string with additional context
   ipAddress String?
 
   createdAt DateTime @default(now())
