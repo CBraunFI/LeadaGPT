@@ -43,6 +43,9 @@ model UserProfile {
   goals              String? // JSON string array
   preferredLanguage  String   @default("Deutsch") // User's preferred language (e.g., "Deutsch", "English", "中文", "Schwäbisch")
 
+  // Prompt Hierarchy Level 3: Individual Prompt
+  individualPrompt   String?  @db.Text // Optional: User-specific AI instructions (specializes corporate/system prompt)
+
   onboardingComplete Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -173,8 +176,12 @@ model Company {
   logoUrl     String?  // URL zum Company-Logo (für Branding)
   accentColor String?  // Hex-Farbe, z.B. "#5D9FAD" (für Branding)
 
+  // Prompt Hierarchy Level 2: Corporate Prompt
+  corporatePrompt String? @db.Text // Optional: Company-wide AI instructions (specializes system prompt)
+
   users       User[]
   documents   Document[]
+  admins      Admin[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -219,6 +226,10 @@ model Admin {
   name         String
   role         String   @default("admin") // "admin" | "superadmin"
   isActive     Boolean  @default(true)
+
+  // Company Admin Linking
+  companyId    String?  // null for superadmin, set for company admin
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   lastLoginAt  DateTime?
   createdAt    DateTime @default(now())

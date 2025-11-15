@@ -7,6 +7,7 @@ export interface AdminAuthRequest extends Request {
     adminId: string;
     email: string;
     role: string;
+    companyId?: string; // For company admins
   };
 }
 
@@ -31,7 +32,7 @@ export const authenticateAdmin = async (
     // Verify admin still exists and is active
     const admin = await prisma.admin.findUnique({
       where: { id: payload.adminId },
-      select: { id: true, email: true, role: true, isActive: true },
+      select: { id: true, email: true, role: true, isActive: true, companyId: true },
     });
 
     if (!admin || !admin.isActive) {
@@ -42,6 +43,7 @@ export const authenticateAdmin = async (
       adminId: admin.id,
       email: admin.email,
       role: admin.role,
+      companyId: admin.companyId || undefined,
     };
 
     next();
@@ -60,6 +62,21 @@ export const requireSuperAdmin = (
 ) => {
   if (req.admin?.role !== 'superadmin') {
     return res.status(403).json({ error: 'Nur Superadmins haben Zugriff auf diese Ressource' });
+  }
+  next();
+};
+
+/**
+ * Middleware to check if admin is a company admin (has companyId)
+ * Company admins can only access their own company's data
+ */
+export const requireCompanyAdmin = (
+  req: AdminAuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!req.admin?.companyId) {
+    return res.status(403).json({ error: 'Nur Company-Admins haben Zugriff auf diese Ressource' });
   }
   next();
 };

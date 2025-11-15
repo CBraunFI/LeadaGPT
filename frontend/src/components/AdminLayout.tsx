@@ -42,6 +42,10 @@ const AdminLayout: React.FC = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Determine if this is company admin or superadmin based on path
+  const isCompanyAdmin = location.pathname.startsWith('/company-admin');
+  const basePath = isCompanyAdmin ? '/company-admin' : '/admin';
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -58,7 +62,7 @@ const AdminLayout: React.FC = () => {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gray-900">Leada-GPT</h1>
-                  <p className="text-xs text-gray-500">Admin Portal</p>
+                  <p className="text-xs text-gray-500">{isCompanyAdmin ? 'Company Admin' : 'Admin Portal'}</p>
                 </div>
               </div>
             </div>
@@ -66,9 +70,9 @@ const AdminLayout: React.FC = () => {
             {/* Navigation - Desktop */}
             <nav className="hidden md:flex items-center space-x-1">
               <Link
-                to="/admin/dashboard"
+                to={`${basePath}/dashboard`}
                 className={`px-4 py-2 rounded-lg font-medium transition ${
-                  isActive('/admin/dashboard')
+                  isActive(`${basePath}/dashboard`)
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -76,15 +80,27 @@ const AdminLayout: React.FC = () => {
                 Dashboard
               </Link>
               <Link
-                to="/admin/users"
+                to={`${basePath}/users`}
                 className={`px-4 py-2 rounded-lg font-medium transition ${
-                  isActive('/admin/users')
+                  isActive(`${basePath}/users`)
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 Nutzerverwaltung
               </Link>
+              {isCompanyAdmin && (
+                <Link
+                  to={`${basePath}/settings`}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${
+                    isActive(`${basePath}/settings`)
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Mein Unternehmen
+                </Link>
+              )}
             </nav>
 
             {/* User Menu */}
@@ -121,10 +137,10 @@ const AdminLayout: React.FC = () => {
             <div className="md:hidden py-4 border-t border-gray-200">
               <nav className="flex flex-col space-y-2">
                 <Link
-                  to="/admin/dashboard"
+                  to={`${basePath}/dashboard`}
                   onClick={() => setIsMenuOpen(false)}
                   className={`px-4 py-2 rounded-lg font-medium transition ${
-                    isActive('/admin/dashboard')
+                    isActive(`${basePath}/dashboard`)
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -132,16 +148,29 @@ const AdminLayout: React.FC = () => {
                   Dashboard
                 </Link>
                 <Link
-                  to="/admin/users"
+                  to={`${basePath}/users`}
                   onClick={() => setIsMenuOpen(false)}
                   className={`px-4 py-2 rounded-lg font-medium transition ${
-                    isActive('/admin/users')
+                    isActive(`${basePath}/users`)
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   Nutzerverwaltung
                 </Link>
+                {isCompanyAdmin && (
+                  <Link
+                    to={`${basePath}/settings`}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      isActive(`${basePath}/settings`)
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Mein Unternehmen
+                  </Link>
+                )}
                 <div className="px-4 py-2 border-t border-gray-200">
                   <p className="text-sm font-medium text-gray-900">{admin?.name}</p>
                   <p className="text-xs text-gray-500 capitalize">{admin?.role}</p>

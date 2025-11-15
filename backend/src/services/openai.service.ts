@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { getLeadaSystemPrompt } from '../config/system-prompt';
+import { buildAIContext } from './prompt.service';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -11,6 +12,7 @@ export interface ChatMessage {
 }
 
 export interface UserContext {
+  userId?: string; // Required for prompt hierarchy
   profile?: {
     firstName?: string;
     age?: number;
@@ -90,10 +92,37 @@ export const getChatCompletion = async (
   // Get user's preferred language, default to Deutsch
   const userLanguage = userContext?.profile?.preferredLanguage || 'Deutsch';
 
-  const systemMessages: ChatMessage[] = [
-    { role: 'system', content: getLeadaSystemPrompt(userLanguage) },
-  ];
+  const systemMessages: ChatMessage[] = [];
 
+  // Use prompt hierarchy if userId is available
+  if (userContext?.userId) {
+    try {
+      const aiContext = await buildAIContext(userContext.userId, userLanguage);
+
+      // Add hierarchical system prompt (System > Corporate > Individual)
+      systemMessages.push({ role: 'system', content: aiContext.systemPrompt });
+
+      // Add company documents context if available
+      if (aiContext.companyDocuments.length > 0) {
+        const documentsText = aiContext.companyDocuments
+          .map((doc) => `\n## ${doc.filename}\n\n${doc.extractedText}`)
+          .join('\n\n');
+
+        systemMessages.push({
+          role: 'system',
+          content: `# Unternehmens-Dokumente\n\nDie folgenden Dokumente sind vom Unternehmen bereitgestellt und sollen in deine Empfehlungen einfließen:\n${documentsText}`,
+        });
+      }
+    } catch (error) {
+      console.error('Error building AI context, falling back to simple system prompt:', error);
+      systemMessages.push({ role: 'system', content: getLeadaSystemPrompt(userLanguage) });
+    }
+  } else {
+    // Fallback to simple system prompt if no userId
+    systemMessages.push({ role: 'system', content: getLeadaSystemPrompt(userLanguage) });
+  }
+
+  // Add user profile context
   if (userContext) {
     const contextPrompt = generateUserContextPrompt(userContext);
     if (contextPrompt) {

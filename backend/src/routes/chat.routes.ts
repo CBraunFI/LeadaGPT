@@ -335,6 +335,7 @@ router.post(
 
       // Build user context
       const userContext: UserContext = {
+        userId: req.user!.userId, // Required for prompt hierarchy
         profile: profile
           ? {
               age: profile.age || undefined,

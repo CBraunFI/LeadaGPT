@@ -16,6 +16,7 @@ import routinenRoutes from './routes/routinen.routes';
 import reportsRoutes from './routes/reports.routes';
 import documentsRoutes from './routes/documents.routes';
 import adminRoutes from './routes/admin.routes';
+import companyAdminRoutes from './routes/company-admin.routes';
 import brandingRoutes from './routes/branding.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import languageRoutes from './routes/language.routes';
@@ -77,6 +78,7 @@ app.get('/', (req, res) => {
       reports: '/api/reports',
       documents: '/api/documents',
       admin: '/api/admin',
+      companyAdmin: '/api/company-admin',
       branding: '/api/branding',
       dashboard: '/api/dashboard',
       languages: '/api/languages',
@@ -98,6 +100,7 @@ app.use('/api/routines', routinenRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/company-admin', companyAdminRoutes);
 app.use('/api/branding', brandingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/languages', languageRoutes);

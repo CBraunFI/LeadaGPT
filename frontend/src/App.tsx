@@ -20,6 +20,11 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 
+// Company Admin Pages
+import CompanyAdminDashboard from './pages/company-admin/CompanyAdminDashboard';
+import CompanyAdminUsers from './pages/company-admin/CompanyAdminUsers';
+import CompanyAdminSettings from './pages/company-admin/CompanyAdminSettings';
+
 // Layout
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
@@ -62,6 +67,14 @@ function App() {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        </Route>
+
+        {/* Company Admin routes */}
+        <Route path="/company-admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<CompanyAdminDashboard />} />
+          <Route path="users" element={<CompanyAdminUsers />} />
+          <Route path="settings" element={<CompanyAdminSettings />} />
+          <Route index element={<Navigate to="/company-admin/dashboard" replace />} />
         </Route>
 
         {/* Protected routes */}
