@@ -7,10 +7,16 @@ export type AuditAction =
   | 'user_list'
   | 'user_edit'
   | 'user_delete'
+  | 'user_promote_to_admin'
+  | 'user_company_assign'
   | 'password_reset'
   | 'dashboard_view'
   | 'company_view'
-  | 'company_edit';
+  | 'company_create'
+  | 'company_edit'
+  | 'company_prompt_update'
+  | 'company_document_upload'
+  | 'company_document_delete';
 
 export interface AuditLogParams {
   adminId: string;

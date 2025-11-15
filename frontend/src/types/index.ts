@@ -216,6 +216,14 @@ export interface Company {
   name: string;
   domain?: string;
   description?: string;
+  logoUrl?: string;
+  accentColor?: string;
+  corporatePrompt?: string;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    users: number;
+    documents: number;
+    admins: number;
+  };
 }

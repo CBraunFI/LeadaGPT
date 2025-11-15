@@ -19,6 +19,7 @@ import MeinUnternehmen from './pages/MeinUnternehmen';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
+import CompanyManagement from './pages/admin/CompanyManagement';
 
 // Company Admin Pages
 import CompanyAdminDashboard from './pages/company-admin/CompanyAdminDashboard';
@@ -66,6 +67,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="companies" element={<CompanyManagement />} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
 

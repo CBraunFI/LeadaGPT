@@ -89,6 +89,18 @@ const AdminLayout: React.FC = () => {
               >
                 Nutzerverwaltung
               </Link>
+              {!isCompanyAdmin && (
+                <Link
+                  to={`${basePath}/companies`}
+                  className={`px-4 py-2 rounded-lg font-medium transition ${
+                    isActive(`${basePath}/companies`)
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Unternehmen
+                </Link>
+              )}
               {isCompanyAdmin && (
                 <Link
                   to={`${basePath}/settings`}
@@ -158,6 +170,19 @@ const AdminLayout: React.FC = () => {
                 >
                   Nutzerverwaltung
                 </Link>
+                {!isCompanyAdmin && (
+                  <Link
+                    to={`${basePath}/companies`}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`px-4 py-2 rounded-lg font-medium transition ${
+                      isActive(`${basePath}/companies`)
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Unternehmen
+                  </Link>
+                )}
                 {isCompanyAdmin && (
                   <Link
                     to={`${basePath}/settings`}

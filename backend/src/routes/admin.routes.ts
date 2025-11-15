@@ -10,8 +10,41 @@ import {
   getUserStats,
   getCompanyStats,
 } from '../services/statistics.service';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { extractText } from '../services/textExtraction.service';
 
 const router = Router();
+
+// Configure multer for company document uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../../uploads/company-documents');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['.pdf', '.docx', '.txt'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Nur PDF, DOCX und TXT Dateien sind erlaubt'));
+    }
+  },
+});
 
 /**
  * POST /api/admin/login
@@ -372,6 +405,536 @@ router.get('/companies', authenticateAdmin, async (req: AdminAuthRequest, res: R
     res.status(500).json({ error: 'Fehler beim Laden der Unternehmensdaten' });
   }
 });
+
+/**
+ * POST /api/admin/companies
+ * Create a new company (Superadmin only)
+ */
+router.post(
+  '/companies',
+  authenticateAdmin,
+  requireSuperAdmin,
+  [
+    body('name').isString().trim().isLength({ min: 1, max: 200 }),
+    body('description').optional().isString(),
+    body('domain').optional().isString(),
+    body('logoUrl').optional().isURL(),
+    body('accentColor').optional().isString().matches(/^#[0-9A-Fa-f]{6}$/),
+  ],
+  async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { name, description, domain, logoUrl, accentColor } = req.body;
+
+      const company = await prisma.company.create({
+        data: {
+          name,
+          description,
+          domain,
+          logoUrl,
+          accentColor,
+        },
+      });
+
+      await createAuditLog({
+        adminId: req.admin!.adminId,
+        action: 'company_create',
+        targetId: company.id,
+        details: { name },
+        ipAddress: req.ip,
+      });
+
+      res.status(201).json(company);
+    } catch (error) {
+      console.error('Create company error:', error);
+      res.status(500).json({ error: 'Fehler beim Erstellen des Unternehmens' });
+    }
+  }
+);
+
+/**
+ * GET /api/admin/companies/:id
+ * Get single company details (Superadmin only)
+ */
+router.get('/companies/:id', authenticateAdmin, requireSuperAdmin, async (req: AdminAuthRequest, res: Response) => {
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id: req.params.id },
+      include: {
+        _count: {
+          select: {
+            users: true,
+            documents: true,
+            admins: true,
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: 'Unternehmen nicht gefunden' });
+    }
+
+    await createAuditLog({
+      adminId: req.admin!.adminId,
+      action: 'company_view',
+      targetId: company.id,
+      ipAddress: req.ip,
+    });
+
+    res.json(company);
+  } catch (error) {
+    console.error('Get company error:', error);
+    res.status(500).json({ error: 'Fehler beim Laden des Unternehmens' });
+  }
+});
+
+/**
+ * PUT /api/admin/companies/:id
+ * Update company (Superadmin only)
+ */
+router.put(
+  '/companies/:id',
+  authenticateAdmin,
+  requireSuperAdmin,
+  [
+    body('name').optional().isString().trim().isLength({ min: 1, max: 200 }),
+    body('description').optional().isString(),
+    body('domain').optional().isString(),
+    body('logoUrl').optional().isURL(),
+    body('accentColor').optional().isString().matches(/^#[0-9A-Fa-f]{6}$/),
+  ],
+  async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { name, description, domain, logoUrl, accentColor } = req.body;
+
+      const company = await prisma.company.update({
+        where: { id: req.params.id },
+        data: {
+          ...(name !== undefined && { name }),
+          ...(description !== undefined && { description }),
+          ...(domain !== undefined && { domain }),
+          ...(logoUrl !== undefined && { logoUrl }),
+          ...(accentColor !== undefined && { accentColor }),
+        },
+      });
+
+      await createAuditLog({
+        adminId: req.admin!.adminId,
+        action: 'company_edit',
+        targetId: company.id,
+        details: { name },
+        ipAddress: req.ip,
+      });
+
+      res.json(company);
+    } catch (error) {
+      console.error('Update company error:', error);
+      res.status(500).json({ error: 'Fehler beim Aktualisieren des Unternehmens' });
+    }
+  }
+);
+
+/**
+ * PUT /api/admin/companies/:id/corporate-prompt
+ * Update company corporate prompt (Superadmin only)
+ */
+router.put(
+  '/companies/:id/corporate-prompt',
+  authenticateAdmin,
+  requireSuperAdmin,
+  [body('corporatePrompt').optional().isString()],
+  async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { corporatePrompt } = req.body;
+
+      await prisma.company.update({
+        where: { id: req.params.id },
+        data: { corporatePrompt: corporatePrompt || null },
+      });
+
+      await createAuditLog({
+        adminId: req.admin!.adminId,
+        action: 'company_prompt_update',
+        targetId: req.params.id,
+        ipAddress: req.ip,
+      });
+
+      res.json({ message: 'Corporate Prompt aktualisiert' });
+    } catch (error) {
+      console.error('Update corporate prompt error:', error);
+      res.status(500).json({ error: 'Fehler beim Aktualisieren des Corporate Prompts' });
+    }
+  }
+);
+
+/**
+ * GET /api/admin/companies/:id/users
+ * Get all users for a company (Superadmin only)
+ */
+router.get('/companies/:id/users', authenticateAdmin, requireSuperAdmin, async (req: AdminAuthRequest, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { companyId: req.params.id },
+      include: {
+        profile: {
+          select: {
+            firstName: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Get company users error:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Nutzer' });
+  }
+});
+
+/**
+ * GET /api/admin/companies/:id/admins
+ * Get all admins for a company (Superadmin only)
+ */
+router.get('/companies/:id/admins', authenticateAdmin, requireSuperAdmin, async (req: AdminAuthRequest, res: Response) => {
+  try {
+    const admins = await prisma.admin.findMany({
+      where: { companyId: req.params.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        lastLoginAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(admins);
+  } catch (error) {
+    console.error('Get company admins error:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Admins' });
+  }
+});
+
+/**
+ * POST /api/admin/users/:userId/promote-to-admin
+ * Promote a user to company admin (Superadmin only)
+ */
+router.post(
+  '/users/:userId/promote-to-admin',
+  authenticateAdmin,
+  requireSuperAdmin,
+  [
+    body('name').isString().trim().isLength({ min: 1 }),
+    body('password').isString().isLength({ min: 6 }),
+  ],
+  async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { name, password } = req.body;
+
+      // Get user
+      const user = await prisma.user.findUnique({
+        where: { id: req.params.userId },
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: 'Nutzer nicht gefunden' });
+      }
+
+      if (!user.companyId) {
+        return res.status(400).json({ error: 'Nutzer muss zuerst einem Unternehmen zugeordnet werden' });
+      }
+
+      // Check if admin already exists for this user's email
+      const existingAdmin = await prisma.admin.findUnique({
+        where: { email: user.email },
+      });
+
+      if (existingAdmin) {
+        return res.status(400).json({ error: 'Admin mit dieser E-Mail existiert bereits' });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create admin
+      const admin = await prisma.admin.create({
+        data: {
+          email: user.email,
+          passwordHash,
+          name,
+          role: 'admin',
+          companyId: user.companyId,
+        },
+      });
+
+      await createAuditLog({
+        adminId: req.admin!.adminId,
+        action: 'user_promote_to_admin',
+        targetId: user.id,
+        details: { adminId: admin.id, companyId: user.companyId },
+        ipAddress: req.ip,
+      });
+
+      res.status(201).json({
+        message: 'Nutzer erfolgreich zu Company Admin ernannt',
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          name: admin.name,
+          role: admin.role,
+          companyId: admin.companyId,
+        },
+      });
+    } catch (error) {
+      console.error('Promote user to admin error:', error);
+      res.status(500).json({ error: 'Fehler beim Ernennen zum Admin' });
+    }
+  }
+);
+
+/**
+ * PUT /api/admin/users/:userId/company
+ * Assign user to a company (Superadmin only)
+ */
+router.put(
+  '/users/:userId/company',
+  authenticateAdmin,
+  requireSuperAdmin,
+  [body('companyId').optional().isString()],
+  async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { companyId } = req.body;
+
+      // Verify company exists if provided
+      if (companyId) {
+        const company = await prisma.company.findUnique({
+          where: { id: companyId },
+        });
+
+        if (!company) {
+          return res.status(404).json({ error: 'Unternehmen nicht gefunden' });
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id: req.params.userId },
+        data: { companyId: companyId || null },
+      });
+
+      await createAuditLog({
+        adminId: req.admin!.adminId,
+        action: 'user_company_assign',
+        targetId: user.id,
+        details: { companyId },
+        ipAddress: req.ip,
+      });
+
+      res.json({ message: 'Unternehmen zugeordnet', user });
+    } catch (error) {
+      console.error('Assign user to company error:', error);
+      res.status(500).json({ error: 'Fehler beim Zuordnen des Unternehmens' });
+    }
+  }
+);
+
+/**
+ * GET /api/admin/companies/:id/documents
+ * Get company documents (Superadmin only)
+ */
+router.get('/companies/:id/documents', authenticateAdmin, requireSuperAdmin, async (req: AdminAuthRequest, res: Response) => {
+  try {
+    const documents = await prisma.document.findMany({
+      where: {
+        companyId: req.params.id,
+        category: 'company',
+      },
+      select: {
+        id: true,
+        filename: true,
+        fileType: true,
+        fileSize: true,
+        uploadedAt: true,
+        metadata: true,
+      },
+      orderBy: {
+        uploadedAt: 'desc',
+      },
+    });
+
+    res.json(documents);
+  } catch (error) {
+    console.error('Get company documents error:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Dokumente' });
+  }
+});
+
+/**
+ * POST /api/admin/companies/:id/documents
+ * Upload company document (Superadmin only)
+ */
+router.post(
+  '/companies/:id/documents',
+  authenticateAdmin,
+  requireSuperAdmin,
+  upload.single('file'),
+  async (req: AdminAuthRequest, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+      }
+
+      const companyId = req.params.id;
+      const filePath = req.file.path;
+      const fileType = path.extname(req.file.originalname).toLowerCase().substring(1);
+
+      // Verify company exists
+      const company = await prisma.company.findUnique({
+        where: { id: companyId },
+      });
+
+      if (!company) {
+        // Clean up uploaded file
+        fs.unlinkSync(filePath);
+        return res.status(404).json({ error: 'Unternehmen nicht gefunden' });
+      }
+
+      // Extract text from file
+      const fileBuffer = fs.readFileSync(filePath);
+      const extractionResult = await extractText(fileBuffer, fileType);
+      const extractedText = extractionResult.text || '';
+
+      // Create a system user for the company if needed
+      let companyUser = await prisma.user.findFirst({
+        where: {
+          companyId,
+          email: `system@${companyId}.internal`,
+        },
+      });
+
+      if (!companyUser) {
+        companyUser = await prisma.user.create({
+          data: {
+            email: `system@${companyId}.internal`,
+            passwordHash: null,
+            authProvider: 'system',
+            companyId,
+          },
+        });
+      }
+
+      // Create document record
+      const document = await prisma.document.create({
+        data: {
+          userId: companyUser.id,
+          companyId,
+          filename: req.file.originalname,
+          fileType,
+          fileSize: req.file.size,
+          category: 'company',
+          extractedText,
+          metadata: JSON.stringify({
+            uploadedBy: req.admin!.email,
+            uploadedAt: new Date().toISOString(),
+          }),
+        },
+      });
+
+      await createAuditLog({
+        adminId: req.admin!.adminId,
+        action: 'company_document_upload',
+        targetId: companyId,
+        details: { documentId: document.id, filename: req.file.originalname },
+        ipAddress: req.ip,
+      });
+
+      res.status(201).json({
+        id: document.id,
+        filename: document.filename,
+        fileType: document.fileType,
+        fileSize: document.fileSize,
+        uploadedAt: document.uploadedAt,
+      });
+    } catch (error) {
+      console.error('Upload company document error:', error);
+      res.status(500).json({ error: 'Fehler beim Hochladen des Dokuments' });
+    }
+  }
+);
+
+/**
+ * DELETE /api/admin/companies/:id/documents/:docId
+ * Delete company document (Superadmin only)
+ */
+router.delete(
+  '/companies/:id/documents/:docId',
+  authenticateAdmin,
+  requireSuperAdmin,
+  async (req: AdminAuthRequest, res: Response) => {
+    try {
+      const { id: companyId, docId } = req.params;
+
+      // Verify document belongs to this company
+      const document = await prisma.document.findFirst({
+        where: {
+          id: docId,
+          companyId,
+          category: 'company',
+        },
+      });
+
+      if (!document) {
+        return res.status(404).json({ error: 'Dokument nicht gefunden' });
+      }
+
+      // Delete from database
+      await prisma.document.delete({
+        where: { id: docId },
+      });
+
+      await createAuditLog({
+        adminId: req.admin!.adminId,
+        action: 'company_document_delete',
+        targetId: companyId,
+        details: { documentId: docId, filename: document.filename },
+        ipAddress: req.ip,
+      });
+
+      res.json({ message: 'Dokument erfolgreich gelöscht' });
+    } catch (error) {
+      console.error('Delete company document error:', error);
+      res.status(500).json({ error: 'Fehler beim Löschen des Dokuments' });
+    }
+  }
+);
 
 /**
  * GET /api/admin/me

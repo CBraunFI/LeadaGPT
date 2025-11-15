@@ -70,4 +70,84 @@ export const adminUsersAPI = {
 export const adminCompaniesAPI = {
   getList: () =>
     adminAxiosInstance.get<Company[]>('/companies').then(extractData),
+
+  getById: (companyId: string) =>
+    adminAxiosInstance.get<Company>(`/companies/${companyId}`).then(extractData),
+
+  create: (data: {
+    name: string;
+    description?: string;
+    domain?: string;
+    logoUrl?: string;
+    accentColor?: string;
+  }) =>
+    adminAxiosInstance.post<Company>('/companies', data).then(extractData),
+
+  update: (companyId: string, data: {
+    name?: string;
+    description?: string;
+    domain?: string;
+    logoUrl?: string;
+    accentColor?: string;
+  }) =>
+    adminAxiosInstance.put<Company>(`/companies/${companyId}`, data).then(extractData),
+
+  updateCorporatePrompt: (companyId: string, corporatePrompt: string | null) =>
+    adminAxiosInstance
+      .put(`/companies/${companyId}/corporate-prompt`, { corporatePrompt })
+      .then(extractData),
+
+  getUsers: (companyId: string) =>
+    adminAxiosInstance.get<AdminUser[]>(`/companies/${companyId}/users`).then(extractData),
+
+  getAdmins: (companyId: string) =>
+    adminAxiosInstance
+      .get<Array<{
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+        isActive: boolean;
+        lastLoginAt?: string;
+        createdAt: string;
+      }>>(`/companies/${companyId}/admins`)
+      .then(extractData),
+
+  getDocuments: (companyId: string) =>
+    adminAxiosInstance
+      .get<Array<{
+        id: string;
+        filename: string;
+        fileType: string;
+        fileSize: number;
+        uploadedAt: string;
+        metadata?: string;
+      }>>(`/companies/${companyId}/documents`)
+      .then(extractData),
+
+  uploadDocument: (companyId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return adminAxiosInstance
+      .post(`/companies/${companyId}/documents`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then(extractData);
+  },
+
+  deleteDocument: (companyId: string, documentId: string) =>
+    adminAxiosInstance.delete(`/companies/${companyId}/documents/${documentId}`).then(extractData),
+};
+
+// User Management Extensions
+export const adminUserManagementAPI = {
+  promoteToAdmin: (userId: string, data: { name: string; password: string }) =>
+    adminAxiosInstance
+      .post(`/users/${userId}/promote-to-admin`, data)
+      .then(extractData),
+
+  assignToCompany: (userId: string, companyId: string | null) =>
+    adminAxiosInstance
+      .put(`/users/${userId}/company`, { companyId })
+      .then(extractData),
 };
