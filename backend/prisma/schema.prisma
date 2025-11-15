@@ -41,6 +41,7 @@ model UserProfile {
   teamSize           Int?
   leadershipYears    Int?
   goals              String? // JSON string array
+  preferredLanguage  String   @default("Deutsch") // User's preferred language (e.g., "Deutsch", "English", "中文", "Schwäbisch")
 
   onboardingComplete Boolean  @default(false)
   createdAt          DateTime @default(now())

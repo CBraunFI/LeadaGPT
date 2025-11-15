@@ -18,6 +18,7 @@ import documentsRoutes from './routes/documents.routes';
 import adminRoutes from './routes/admin.routes';
 import brandingRoutes from './routes/branding.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import languageRoutes from './routes/language.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +79,7 @@ app.get('/', (req, res) => {
       admin: '/api/admin',
       branding: '/api/branding',
       dashboard: '/api/dashboard',
+      languages: '/api/languages',
     },
   });
 });
@@ -98,6 +100,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/branding', brandingRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/languages', languageRoutes);
 
 // 404 handler
 app.use((req, res) => {

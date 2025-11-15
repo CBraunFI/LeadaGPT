@@ -1,17 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { profileAPI, chatAPI } from '../services/api';
+import { useStore } from '../store/useStore';
 import MessageContent from '../components/MessageContent';
+import LanguageSelector from '../components/LanguageSelector';
 import { ChatSession } from '../types';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const user = useStore((state) => state.user);
+  const setUser = useStore((state) => state.setUser);
   const [summary, setSummary] = useState<string>('');
   const [chat, setChat] = useState<ChatSession | null>(null);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [isLoadingChat, setIsLoadingChat] = useState(true);
+  const [showLanguageSettings, setShowLanguageSettings] = useState(false);
+  const [preferredLanguage, setPreferredLanguage] = useState(user?.profile?.preferredLanguage || 'Deutsch');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,14 +89,66 @@ const Profile = () => {
     }
   };
 
+  const handleLanguageChange = async (newLang: string) => {
+    setPreferredLanguage(newLang);
+    try {
+      await profileAPI.update({ preferredLanguage: newLang });
+      // Reload user to update language
+      const updatedUser = await profileAPI.get();
+      if (user) {
+        setUser({ ...user, profile: updatedUser });
+      }
+      // Reload summary in new language
+      loadProfileData();
+      alert(`Sprache erfolgreich geändert zu: ${newLang}\n\nDer Chat-Coach wird ab jetzt auf ${newLang} antworten!`);
+    } catch (error) {
+      console.error('Failed to update language:', error);
+      alert('Fehler beim Speichern der Sprache');
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Mein Profil</h1>
-        <p style={{ color: 'var(--fg-secondary)' }}>
-          Ihre persönliche Entwicklung im Überblick
-        </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Mein Profil</h1>
+            <p style={{ color: 'var(--fg-secondary)' }}>
+              Ihre persönliche Entwicklung im Überblick
+            </p>
+          </div>
+          <button
+            onClick={() => setShowLanguageSettings(!showLanguageSettings)}
+            className="px-4 py-2 rounded-lg font-medium transition-colors"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+              color: 'var(--fg-primary)',
+            }}
+          >
+            🌍 Sprache: {preferredLanguage}
+          </button>
+        </div>
       </div>
+
+      {/* Language Settings */}
+      {showLanguageSettings && (
+        <div
+          className="mb-8 p-6 rounded-lg border"
+          style={{
+            backgroundColor: 'var(--bg-secondary)',
+            borderColor: 'var(--border)',
+          }}
+        >
+          <h2 className="text-xl font-bold mb-4">Spracheinstellungen</h2>
+          <LanguageSelector
+            value={preferredLanguage}
+            onChange={handleLanguageChange}
+            label="Bevorzugte Sprache"
+            showCustomInput={true}
+          />
+        </div>
+      )}
 
       {/* Profile Summary */}
       <div

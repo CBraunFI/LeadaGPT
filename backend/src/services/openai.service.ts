@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { LEADA_SYSTEM_PROMPT } from '../config/system-prompt';
+import { getLeadaSystemPrompt } from '../config/system-prompt';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,6 +18,7 @@ export interface UserContext {
     teamSize?: number;
     goals?: string[];
     onboardingComplete?: boolean;
+    preferredLanguage?: string;
   };
   activeThemenpakete?: Array<{
     title: string;
@@ -86,8 +87,11 @@ export const getChatCompletion = async (
   messages: ChatMessage[],
   userContext?: UserContext
 ): Promise<string> => {
+  // Get user's preferred language, default to Deutsch
+  const userLanguage = userContext?.profile?.preferredLanguage || 'Deutsch';
+
   const systemMessages: ChatMessage[] = [
-    { role: 'system', content: LEADA_SYSTEM_PROMPT },
+    { role: 'system', content: getLeadaSystemPrompt(userLanguage) },
   ];
 
   if (userContext) {

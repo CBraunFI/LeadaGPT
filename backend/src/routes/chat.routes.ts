@@ -96,6 +96,7 @@ async function deliverPendingThemenPaketUnits(sessionId: string, userId: string)
             teamSize: profile.teamSize || undefined,
             goals: profile.goals ? JSON.parse(profile.goals) : undefined,
             onboardingComplete: profile.onboardingComplete,
+            preferredLanguage: profile.preferredLanguage || 'Deutsch',
           },
           documentsContext: documentsContext || undefined,
         }
@@ -341,6 +342,7 @@ router.post(
               teamSize: profile.teamSize || undefined,
               goals: profile.goals ? JSON.parse(profile.goals) : undefined,
               onboardingComplete: profile.onboardingComplete,
+              preferredLanguage: profile.preferredLanguage || 'Deutsch',
             }
           : undefined,
         activeThemenpakete: activeThemenpakete.map((tp) => ({

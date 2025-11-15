@@ -10,6 +10,7 @@ import type {
   WeeklyReport,
   Document,
   CompanyBranding,
+  Language,
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -184,6 +185,17 @@ export const dashboardAPI = {
 
   getStats: (period: 'week' | 'month' | '3months' | '6months' | 'all' = 'week') =>
     axiosInstance.get(`/dashboard/stats?period=${period}`).then(extractData),
+};
+
+// Language API
+export const languageAPI = {
+  getCommonLanguages: () => axiosInstance.get<Language[]>('/languages/common').then(extractData),
+
+  getTranslations: (lang: string) =>
+    axiosInstance.get<{ language: string; translations: Record<string, string> }>(`/languages/translations?lang=${lang}`).then(extractData),
+
+  clearCache: (lang?: string) =>
+    axiosInstance.delete(`/languages/cache${lang ? `?lang=${lang}` : ''}`).then(extractData),
 };
 
 export default axiosInstance;

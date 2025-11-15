@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { authAPI } from '../services/api';
+import { authAPI, profileAPI } from '../services/api';
+import LanguageSelector from '../components/LanguageSelector';
 
 const Login = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [preferredLanguage, setPreferredLanguage] = useState('Deutsch');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +27,16 @@ const Login = () => {
 
       setToken(response.token);
       setUser(response.user);
+
+      // If registering, set preferred language
+      if (isRegister && preferredLanguage) {
+        try {
+          await profileAPI.update({ preferredLanguage });
+        } catch (err) {
+          console.error('Failed to set language:', err);
+        }
+      }
+
       navigate('/chat');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Ein Fehler ist aufgetreten');
@@ -71,6 +83,17 @@ const Login = () => {
               style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--fg-primary)' }}
             />
           </div>
+
+          {isRegister && (
+            <div>
+              <LanguageSelector
+                value={preferredLanguage}
+                onChange={setPreferredLanguage}
+                label="Bevorzugte Sprache"
+                showCustomInput={true}
+              />
+            </div>
+          )}
 
           <button
             type="submit"

@@ -16,7 +16,14 @@ export interface UserProfile {
   teamSize?: number;
   leadershipYears?: number;
   goals?: string[];
+  preferredLanguage?: string;
   onboardingComplete: boolean;
+}
+
+export interface Language {
+  code: string;
+  name: string;
+  nativeName: string;
 }
 
 export interface AuthResponse {

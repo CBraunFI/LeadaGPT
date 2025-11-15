@@ -36,6 +36,7 @@ router.put(
     body('teamSize').optional().isInt({ min: 0 }),
     body('leadershipYears').optional().isInt({ min: 0 }),
     body('goals').optional().isArray(),
+    body('preferredLanguage').optional().isString(),
   ],
   async (req: AuthRequest, res: Response) => {
     try {
@@ -44,7 +45,7 @@ router.put(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { age, gender, role, industry, teamSize, leadershipYears, goals } =
+      const { age, gender, role, industry, teamSize, leadershipYears, goals, preferredLanguage } =
         req.body;
 
       const profile = await prisma.userProfile.update({
@@ -57,6 +58,7 @@ router.put(
           teamSize,
           leadershipYears,
           goals,
+          preferredLanguage,
         },
       });
 
